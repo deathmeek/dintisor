@@ -177,9 +177,6 @@
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="dintisor_nrf.null.399455775" name="dintisor_nrf"/>
 	</storageModule>
-	<storageModule moduleId="scannerConfiguration">
-		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
 		<configuration configurationName="pca10028_s110">
@@ -195,4 +192,5 @@
 			<resource resourceType="PROJECT" workspacePath="/dintisor_nrf"/>
 		</configuration>
 	</storageModule>
+	<storageModule moduleId="scannerConfiguration"/>
 </cproject>
