@@ -8,8 +8,6 @@ MAKEFILE_DIR := $(dir $(MAKEFILE_NAME) )
 TEMPLATE_PATH = ../../../../../../components/toolchain/gcc
 ifeq ($(OS),Windows_NT)
 include $(TEMPLATE_PATH)/Makefile.windows
-else
-include $(TEMPLATE_PATH)/Makefile.posix
 endif
 
 MK := mkdir
@@ -23,14 +21,14 @@ NO_ECHO := @
 endif
 
 # Toolchain commands
-CC       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-gcc"
-AS       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-as"
-AR       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-ar" -r
-LD       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-ld"
-NM       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-nm"
-OBJDUMP  		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-objdump"
-OBJCOPY  		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-objcopy"
-SIZE    		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-size"
+CC       		:= "$(CROSS_COMPILE)gcc"
+AS       		:= "$(CROSS_COMPILE)as"
+AR       		:= "$(CROSS_COMPILE)ar" -r
+LD       		:= "$(CROSS_COMPILE)ld"
+NM       		:= "$(CROSS_COMPILE)nm"
+OBJDUMP  		:= "$(CROSS_COMPILE)objdump"
+OBJCOPY  		:= "$(CROSS_COMPILE)objcopy"
+SIZE    		:= "$(CROSS_COMPILE)size"
 
 #function for removing duplicates in a list
 remduplicates = $(strip $(if $1,$(firstword $1) $(call remduplicates,$(filter-out $(firstword $1),$1))))

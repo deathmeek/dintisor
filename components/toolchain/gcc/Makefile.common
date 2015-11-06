@@ -8,8 +8,6 @@ OUTPUT_BINARY_DIRECTORY := _build
 
 ifeq ($(OS),Windows_NT)
 include $(TEMPLATE_PATH)Makefile.windows
-else
-include $(TEMPLATE_PATH)Makefile.posix
 endif
 
 ifeq ($(LINKER_SCRIPT),)
@@ -32,13 +30,13 @@ endif
 CPU := cortex-m0
 
 # Toolchain commands
-CC       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-gcc"
-AS       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-as"
-AR       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-ar" -r
-LD       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-ld"
-NM       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-nm"
-OBJDUMP  		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-objdump"
-OBJCOPY  		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-objcopy"
+CC       		:= "$(CROSS_COMPILE)gcc"
+AS       		:= "$(CROSS_COMPILE)as"
+AR       		:= "$(CROSS_COMPILE)ar" -r
+LD       		:= "$(CROSS_COMPILE)ld"
+NM       		:= "$(CROSS_COMPILE)nm"
+OBJDUMP  		:= "$(CROSS_COMPILE)objdump"
+OBJCOPY  		:= "$(CROSS_COMPILE)objcopy"
 
 MK 				:= mkdir
 RM 				:= rm -rf
@@ -50,8 +48,6 @@ C_SOURCE_FILES += system_$(DEVICESERIES).c
 ASSEMBLER_SOURCE_FILES += gcc_startup_$(DEVICESERIES).s
 
 # Linker flags
-#LDFLAGS += -L"$(GNU_INSTALL_ROOT)/arm-none-eabi/lib/armv6-m"
-#LDFLAGS += -L"$(GNU_INSTALL_ROOT)/lib/gcc/arm-none-eabi/$(GNU_VERSION)/armv6-m"
 LDFLAGS += -Xlinker -Map=$(LISTING_DIRECTORY)/$(OUTPUT_FILENAME).map
 LDFLAGS += -mcpu=$(CPU) -mthumb -mabi=aapcs -L $(TEMPLATE_PATH) -T$(LINKER_SCRIPT) 
 
