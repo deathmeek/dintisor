@@ -47,6 +47,7 @@
 #include "app_trace.h"
 #include "bsp.h"
 #include "bsp_btn_ble.h"
+#include "app_uart.h"
 
 //lint -e553
 #ifdef SVCALL_AS_NORMAL_FUNCTION
@@ -480,7 +481,7 @@ static void conn_params_init(void)
  */
 static void sleep_mode_enter(void)
 {
-    uint32_t err_code = bsp_indication_set(BSP_INDICATE_IDLE);
+    uint32_t err_code = bsp_indication_text_set(BSP_INDICATE_IDLE, "idle\n");
     APP_ERROR_CHECK(err_code);
 
     // Prepare wakeup buttons.
@@ -506,7 +507,7 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
     switch (ble_adv_evt)
     {
         case BLE_ADV_EVT_FAST:
-            err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
+            err_code = bsp_indication_text_set(BSP_INDICATE_ADVERTISING, "advertising\n");
             APP_ERROR_CHECK(err_code);
             break;
         case BLE_ADV_EVT_IDLE:
@@ -529,7 +530,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
     switch (p_ble_evt->header.evt_id)
     {
         case BLE_GAP_EVT_CONNECTED:
-            err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
+            err_code = bsp_indication_text_set(BSP_INDICATE_CONNECTED, "connected\n");
             APP_ERROR_CHECK(err_code);
 
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
@@ -779,6 +780,41 @@ static void buttons_leds_init(bool * p_erase_bonds)
 }
 
 
+/**@brief   Function for handling app_uart events.
+ */
+void uart_event_handle(app_uart_evt_t * p_event)
+{
+}
+
+
+/**@brief  Function for initializing the UART module.
+ */
+/**@snippet [UART Initialization] */
+static void uart_init(void)
+{
+    uint32_t                     err_code;
+    const app_uart_comm_params_t comm_params =
+    {
+        RX_PIN_NUMBER,
+        TX_PIN_NUMBER,
+        RTS_PIN_NUMBER,
+        CTS_PIN_NUMBER,
+        APP_UART_FLOW_CONTROL_DISABLED,
+        false,
+        UART_BAUDRATE_BAUDRATE_Baud115200
+    };
+
+    APP_UART_FIFO_INIT( &comm_params,
+                       256,
+                       256,
+                       uart_event_handle,
+                       APP_IRQ_PRIORITY_LOW,
+                       err_code);
+    APP_ERROR_CHECK(err_code);
+}
+/**@snippet [UART Initialization] */
+
+
 /**@brief Function for the Power manager.
  */
 static void power_manage(void)
@@ -798,6 +834,7 @@ int main(void)
     // Initialize.
     app_trace_init();
     timers_init();
+    uart_init();
     buttons_leds_init(&erase_bonds);
     ble_stack_init();
     device_manager_init(erase_bonds);
