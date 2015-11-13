@@ -10,18 +10,6 @@
  *
  */
 
-/** @file
- *
- * @defgroup ble_sdk_app_hts_main main.c
- * @{
- * @ingroup ble_sdk_app_hts
- * @brief Health Thermometer Service Sample Application main file.
- *
- * This file contains the source code for a sample application using the Health Thermometer service
- * It also includes the sample code for Battery and Device Information services.
- * This application uses the @ref srvlib_conn_params module.
- */
-
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -37,7 +25,6 @@
 #include "ble_advdata.h"
 #include "ble_advertising.h"
 #include "ble_bas.h"
-#include "ble_hts.h"
 #include "ble_dis.h"
 #include "ble_conn_params.h"
 #include "boards.h"
@@ -59,11 +46,9 @@
 
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 0                                          /**< Include or not the service_changed characteristic. if not enabled, the server's database cannot be changed for the lifetime of the device*/
 
-#define SEND_MEAS_BUTTON_ID             0                                          /**< Button used for sending a measurement. */
-
-#define DEVICE_NAME                     "Nordic_HTS"                               /**< Name of device. Will be included in the advertising data. */
-#define MANUFACTURER_NAME               "NordicSemiconductor"                      /**< Manufacturer. Will be passed to Device Information Service. */
-#define MODEL_NUM                       "NS-HTS-EXAMPLE"                            /**< Model number. Will be passed to Device Information Service. */
+#define DEVICE_NAME                     "Microsal"                                 /**< Name of device. Will be included in the advertising data. */
+#define MANUFACTURER_NAME               "Consortiul Microsal"                      /**< Manufacturer. Will be passed to Device Information Service. */
+#define MODEL_NUM                       "MEPI"                                     /**< Model number. Will be passed to Device Information Service. */
 #define MANUFACTURER_ID                 0x1122334455                               /**< Manufacturer ID, part of System ID. Will be passed to Device Information Service. */
 #define ORG_UNIQUE_ID                   0x667788                                   /**< Organizational Unique ID, part of System ID. Will be passed to Device Information Service. */
 
@@ -78,12 +63,6 @@
 #define MIN_BATTERY_LEVEL               81                                         /**< Minimum battery level as returned by the simulated measurement function. */
 #define MAX_BATTERY_LEVEL               100                                        /**< Maximum battery level as returned by the simulated measurement function. */
 #define BATTERY_LEVEL_INCREMENT         1                                          /**< Value by which the battery level is incremented/decremented for each call to the simulated measurement function. */
-
-#define TEMP_TYPE_AS_CHARACTERISTIC     0                                          /**< Determines if temperature type is given as characteristic (1) or as a field of measurement (0). */
-
-#define MIN_CELCIUS_DEGREES             3688                                       /**< Minimum temperature in celcius for use in the simulated measurement function (multiplied by 100 to avoid floating point arithmetic). */
-#define MAX_CELCIUS_DEGRESS             3972                                       /**< Maximum temperature in celcius for use in the simulated measurement function (multiplied by 100 to avoid floating point arithmetic). */
-#define CELCIUS_DEGREES_INCREMENT       36                                         /**< Value by which temperature is incremented/decremented for each call to the simulated measurement function (multiplied by 100 to avoid floating point arithmetic). */
 
 #define MIN_CONN_INTERVAL               MSEC_TO_UNITS(500, UNIT_1_25_MS)           /**< Minimum acceptable connection interval (0.5 seconds) */
 #define MAX_CONN_INTERVAL               MSEC_TO_UNITS(1000, UNIT_1_25_MS)          /**< Maximum acceptable connection interval (1 second). */
@@ -106,20 +85,15 @@
 
 static uint16_t                         m_conn_handle = BLE_CONN_HANDLE_INVALID;   /**< Handle of the current connection. */
 static ble_bas_t                        m_bas;                                     /**< Structure used to identify the battery service. */
-static ble_hts_t                        m_hts;                                     /**< Structure used to identify the health thermometer service. */
 
 static sensorsim_cfg_t                  m_battery_sim_cfg;                         /**< Battery Level sensor simulator configuration. */
 static sensorsim_state_t                m_battery_sim_state;                       /**< Battery Level sensor simulator state. */
 static bool                             m_hts_meas_ind_conf_pending = false;       /**< Flag to keep track of when an indication confirmation is pending. */
 
-static sensorsim_cfg_t                  m_temp_celcius_sim_cfg;                    /**< Temperature simulator configuration. */
-static sensorsim_state_t                m_temp_celcius_sim_state;                  /**< Temperature simulator state. */
-
 static app_timer_id_t                   m_battery_timer_id;                        /**< Battery timer. */
 static dm_application_instance_t        m_app_handle;                              /**< Application identifier allocated by device manager */
 
-static    ble_uuid_t m_adv_uuids[] = {{BLE_UUID_HEALTH_THERMOMETER_SERVICE, BLE_UUID_TYPE_BLE},
-                                      {BLE_UUID_BATTERY_SERVICE,            BLE_UUID_TYPE_BLE},
+static    ble_uuid_t m_adv_uuids[] = {{BLE_UUID_BATTERY_SERVICE,            BLE_UUID_TYPE_BLE},
                                       {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}}; /**< Universally unique service identifiers. */
 
 
@@ -190,41 +164,6 @@ static void battery_level_meas_timeout_handler(void * p_context)
 }
 
 
-/**@brief Function for populating simulated health thermometer measurement.
- */
-static void hts_sim_measurement(ble_hts_meas_t * p_meas)
-{
-    static ble_date_time_t time_stamp = { 2012, 12, 5, 11, 50, 0 };
-
-    uint32_t celciusX100;
-
-    p_meas->temp_in_fahr_units = false;
-    p_meas->time_stamp_present = true;
-    p_meas->temp_type_present  = (TEMP_TYPE_AS_CHARACTERISTIC ? false : true);
-
-    celciusX100 = sensorsim_measure(&m_temp_celcius_sim_state, &m_temp_celcius_sim_cfg);
-
-    p_meas->temp_in_celcius.exponent = -2;
-    p_meas->temp_in_celcius.mantissa = celciusX100;
-    p_meas->temp_in_fahr.exponent    = -2;
-    p_meas->temp_in_fahr.mantissa    = (32 * 100) + ((celciusX100 * 9) / 5);
-    p_meas->time_stamp               = time_stamp;
-    p_meas->temp_type                = BLE_HTS_TEMP_TYPE_FINGER;
-
-    // update simulated time stamp
-    time_stamp.seconds += 27;
-    if (time_stamp.seconds > 59)
-    {
-        time_stamp.seconds -= 60;
-        time_stamp.minutes++;
-        if (time_stamp.minutes > 59)
-        {
-            time_stamp.minutes = 0;
-        }
-    }
-}
-
-
 /**@brief Function for the Timer initialization.
  *
  * @details Initializes the timer module. This creates and starts application timers.
@@ -262,7 +201,7 @@ static void gap_params_init(void)
                                           strlen(DEVICE_NAME));
     APP_ERROR_CHECK(err_code);
 
-    err_code = sd_ble_gap_appearance_set(BLE_APPEARANCE_GENERIC_THERMOMETER);
+    err_code = sd_ble_gap_appearance_set(BLE_APPEARANCE_UNKNOWN);
     APP_ERROR_CHECK(err_code);
 
     memset(&gap_conn_params, 0, sizeof(gap_conn_params));
@@ -277,95 +216,16 @@ static void gap_params_init(void)
 }
 
 
-/**@brief Function for simulating and sending one Temperature Measurement.
- */
-static void temperature_measurement_send(void)
-{
-    ble_hts_meas_t simulated_meas;
-    uint32_t       err_code;
-
-    if (!m_hts_meas_ind_conf_pending)
-    {
-        hts_sim_measurement(&simulated_meas);
-
-        err_code = ble_hts_measurement_send(&m_hts, &simulated_meas);
-
-        switch (err_code)
-        {
-            case NRF_SUCCESS:
-                // Measurement was successfully sent, wait for confirmation.
-                m_hts_meas_ind_conf_pending = true;
-                break;
-
-            case NRF_ERROR_INVALID_STATE:
-                // Ignore error.
-                break;
-
-            default:
-                APP_ERROR_HANDLER(err_code);
-                break;
-        }
-    }
-}
-
-
-/**@brief Function for handling the Health Thermometer Service events.
- *
- * @details This function will be called for all Health Thermometer Service events which are passed
- *          to the application.
- *
- * @param[in] p_hts  Health Thermometer Service structure.
- * @param[in] p_evt  Event received from the Health Thermometer Service.
- */
-static void on_hts_evt(ble_hts_t * p_hts, ble_hts_evt_t * p_evt)
-{
-    switch (p_evt->evt_type)
-    {
-        case BLE_HTS_EVT_INDICATION_ENABLED:
-            // Indication has been enabled, send a single temperature measurement
-            temperature_measurement_send();
-            break;
-
-        case BLE_HTS_EVT_INDICATION_CONFIRMED:
-            m_hts_meas_ind_conf_pending = false;
-            break;
-
-        default:
-            // No implementation needed.
-            break;
-    }
-}
-
-
 /**@brief Function for initializing services that will be used by the application.
  *
- * @details Initialize the Health Thermometer, Battery and Device Information services.
+ * @details Initialize the Battery and Device Information services.
  */
 static void services_init(void)
 {
     uint32_t         err_code;
-    ble_hts_init_t   hts_init;
     ble_bas_init_t   bas_init;
     ble_dis_init_t   dis_init;
     ble_dis_sys_id_t sys_id;
-
-    // Initialize Health Thermometer Service
-    memset(&hts_init, 0, sizeof(hts_init));
-
-    hts_init.evt_handler                 = on_hts_evt;
-    hts_init.temp_type_as_characteristic = TEMP_TYPE_AS_CHARACTERISTIC;
-    hts_init.temp_type                   = BLE_HTS_TEMP_TYPE_BODY;
-
-    // Here the sec level for the Health Thermometer Service can be changed/increased.
-    BLE_GAP_CONN_SEC_MODE_SET_ENC_NO_MITM(&hts_init.hts_meas_attr_md.cccd_write_perm);
-    BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&hts_init.hts_meas_attr_md.read_perm);
-    BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&hts_init.hts_meas_attr_md.write_perm);
-
-    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&hts_init.hts_temp_type_attr_md.read_perm);
-    BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&hts_init.hts_temp_type_attr_md.write_perm);
-
-    err_code = ble_hts_init(&m_hts, &hts_init);
-    APP_ERROR_CHECK(err_code);
 
     // Initialize Battery Service.
     memset(&bas_init, 0, sizeof(bas_init));
@@ -413,16 +273,7 @@ static void sensor_simulator_init(void)
     m_battery_sim_cfg.start_at_max = true;
 
     sensorsim_init(&m_battery_sim_state, &m_battery_sim_cfg);
-
-    // Temperature is in celcius (it is multiplied by 100 to avoid floating point arithmetic).
-    m_temp_celcius_sim_cfg.min          = MIN_CELCIUS_DEGREES;
-    m_temp_celcius_sim_cfg.max          = MAX_CELCIUS_DEGRESS;
-    m_temp_celcius_sim_cfg.incr         = CELCIUS_DEGREES_INCREMENT;
-    m_temp_celcius_sim_cfg.start_at_max = false;
-
-    sensorsim_init(&m_temp_celcius_sim_state, &m_temp_celcius_sim_cfg);
 }
-
 
 
 /**@brief Function for starting application timers.
@@ -587,7 +438,6 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
  */
 static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
 {
-    ble_hts_on_ble_evt(&m_hts, p_ble_evt);
     ble_bas_on_ble_evt(&m_bas, p_ble_evt);
     ble_conn_params_on_ble_evt(p_ble_evt);
     dm_ble_evt_handler(p_ble_evt);
@@ -625,9 +475,6 @@ static void ble_stack_init(void)
     // Enable BLE stack 
     ble_enable_params_t ble_enable_params;
     memset(&ble_enable_params, 0, sizeof(ble_enable_params));
-#ifdef S130
-    ble_enable_params.gatts_enable_params.attr_tab_size   = BLE_GATTS_ATTR_TAB_SIZE_DEFAULT;
-#endif
     ble_enable_params.gatts_enable_params.service_changed = IS_SRVC_CHANGED_CHARACT_PRESENT;
     err_code = sd_ble_enable(&ble_enable_params);
     APP_ERROR_CHECK(err_code);
@@ -672,10 +519,6 @@ static void bsp_event_handler(bsp_event_t event)
             break;
 
         case BSP_EVENT_KEY_0:
-            if (m_conn_handle != BLE_CONN_HANDLE_INVALID)
-            {
-                temperature_measurement_send();
-            }
             break;
 
         default:
@@ -691,22 +534,12 @@ static uint32_t device_manager_evt_handler(dm_handle_t const * p_handle,
                                            dm_event_t const  * p_event,
                                            ret_code_t        event_result)
 {
-    uint32_t err_code;
-    bool     is_indication_enabled;
-
     switch(p_event->event_id)
     {
         case DM_EVT_LINK_SECURED:
-            // Send a single temperature measurement if indication is enabled.
-            // NOTE: For this to work, make sure ble_hts_on_ble_evt() is called before
+            // Send a single measurement if indication is enabled.
+            // NOTE: For this to work, make sure service ble event handler is called before
             //       dm_ble_evt_handler() in ble_evt_dispatch().
-            err_code = ble_hts_is_indication_enabled(&m_hts, &is_indication_enabled);
-            APP_ERROR_CHECK(err_code);
-
-            if (is_indication_enabled)
-            {
-                temperature_measurement_send();
-            }
             break;
 
         default:
@@ -875,8 +708,3 @@ int main(void)
         power_manage();
     }
 }
-
-
-/**
- * @}
- */
