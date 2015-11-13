@@ -22,6 +22,8 @@
  * This application uses the @ref srvlib_conn_params module.
  */
 
+#include <inttypes.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include "nordic_common.h"
@@ -119,6 +121,21 @@ static dm_application_instance_t        m_app_handle;                           
 static    ble_uuid_t m_adv_uuids[] = {{BLE_UUID_HEALTH_THERMOMETER_SERVICE, BLE_UUID_TYPE_BLE},
                                       {BLE_UUID_BATTERY_SERVICE,            BLE_UUID_TYPE_BLE},
                                       {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}}; /**< Universally unique service identifiers. */
+
+
+/**@brief Function for error handling, which is called when an error has occurred.
+ *
+ * @param[in] error_code  Error code supplied to the handler.
+ * @param[in] line_num    Line number where the handler is called.
+ * @param[in] p_file_name Pointer to the file name.
+ */
+void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t * p_file_name)
+{
+	if(p_file_name)
+		printf("error %"PRIu32" in %s:%"PRIu32"\n", error_code, p_file_name, line_num);
+	else
+		printf("error %"PRIu32"\n", error_code);
+}
 
 
 /**@brief Callback function for asserts in the SoftDevice.
@@ -486,6 +503,9 @@ static void sleep_mode_enter(void)
 
     // Prepare wakeup buttons.
     err_code = bsp_btn_ble_sleep_mode_prepare();
+    APP_ERROR_CHECK(err_code);
+
+    err_code = app_uart_flush();
     APP_ERROR_CHECK(err_code);
 
     // Go to system-off mode (this function will not return; wakeup will cause a reset).
