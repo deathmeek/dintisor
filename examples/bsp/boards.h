@@ -32,6 +32,8 @@
   #include "pca10031.h"
 #elif defined(BOARD_WT51822)
   #include "wt51822.h"
+#elif defined(BOARD_SPARROW_BLE)
+  #include "sparrow_ble.h"
 #elif defined(BOARD_CUSTOM)
   #include "custom_board.h"
 #else
