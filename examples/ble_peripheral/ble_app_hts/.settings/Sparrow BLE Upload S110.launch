@@ -2,6 +2,6 @@
 <launchConfiguration type="org.eclipse.ui.externaltools.ProgramLaunchConfigurationType">
 <stringAttribute key="org.eclipse.ui.externaltools.ATTR_LAUNCH_CONFIGURATION_BUILD_SCOPE" value="${none}"/>
 <stringAttribute key="org.eclipse.ui.externaltools.ATTR_LOCATION" value="/usr/local/bin/JLink"/>
-<stringAttribute key="org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS" value="&quot;device nrf51822_xxaa&quot; &quot;speed 1000&quot; &quot;loadfile s110_softdevice.hex&quot; &quot;r&quot; &quot;g&quot;"/>
+<stringAttribute key="org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS" value="&quot;usb 518006170&quot; &quot;device nrf51822_xxaa&quot; &quot;speed 1000&quot; &quot;loadfile s110_softdevice.hex&quot; &quot;r&quot; &quot;g&quot;"/>
 <stringAttribute key="org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY" value="${git_work_tree}/components/softdevice/s110/hex"/>
 </launchConfiguration>
