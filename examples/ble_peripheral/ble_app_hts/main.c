@@ -650,8 +650,8 @@ static void uart_init(void)
     {
         RX_PIN_NUMBER,
         TX_PIN_NUMBER,
-        RTS_PIN_NUMBER,
-        CTS_PIN_NUMBER,
+        0,
+        0,
         APP_UART_FLOW_CONTROL_DISABLED,
         false,
         UART_BAUDRATE_BAUDRATE_Baud115200
