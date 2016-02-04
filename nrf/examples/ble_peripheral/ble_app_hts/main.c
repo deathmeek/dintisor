@@ -28,7 +28,6 @@
 #include "ble_dis.h"
 #include "ble_conn_params.h"
 #include "boards.h"
-#include "sensorsim.h"
 #include "softdevice_handler.h"
 #include "app_timer.h"
 #include "device_manager.h"
@@ -60,9 +59,6 @@
 #define APP_TIMER_OP_QUEUE_SIZE         4                                          /**< Size of timer operation queues. */
 
 #define BATTERY_LEVEL_MEAS_INTERVAL     APP_TIMER_TICKS(2000, APP_TIMER_PRESCALER) /**< Battery level measurement interval (ticks). */
-#define MIN_BATTERY_LEVEL               81                                         /**< Minimum battery level as returned by the simulated measurement function. */
-#define MAX_BATTERY_LEVEL               100                                        /**< Maximum battery level as returned by the simulated measurement function. */
-#define BATTERY_LEVEL_INCREMENT         1                                          /**< Value by which the battery level is incremented/decremented for each call to the simulated measurement function. */
 
 #define MIN_CONN_INTERVAL               MSEC_TO_UNITS(500, UNIT_1_25_MS)           /**< Minimum acceptable connection interval (0.5 seconds) */
 #define MAX_CONN_INTERVAL               MSEC_TO_UNITS(1000, UNIT_1_25_MS)          /**< Maximum acceptable connection interval (1 second). */
@@ -86,8 +82,6 @@
 static uint16_t                         m_conn_handle = BLE_CONN_HANDLE_INVALID;   /**< Handle of the current connection. */
 static ble_bas_t                        m_bas;                                     /**< Structure used to identify the battery service. */
 
-static sensorsim_cfg_t                  m_battery_sim_cfg;                         /**< Battery Level sensor simulator configuration. */
-static sensorsim_state_t                m_battery_sim_state;                       /**< Battery Level sensor simulator state. */
 static bool                             m_hts_meas_ind_conf_pending = false;       /**< Flag to keep track of when an indication confirmation is pending. */
 
 static app_timer_id_t                   m_battery_timer_id;                        /**< Battery timer. */
@@ -128,29 +122,59 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
 }
 
-
-/**@brief Function for performing a battery measurement, and update the Battery Level characteristic in the Battery Service.
+/**
+ * @brief Init common ADC parameters.
  */
-static void battery_level_update(void)
+static void adc_init(void)
 {
-    uint32_t err_code;
-    uint8_t  battery_level;
+	sd_nvic_SetPriority(ADC_IRQn, NRF_APP_PRIORITY_LOW);
+	sd_nvic_EnableIRQ(ADC_IRQn);
 
-    battery_level = (uint8_t)sensorsim_measure(&m_battery_sim_state, &m_battery_sim_cfg);
+	NRF_ADC->INTENSET	= (ADC_INTENSET_END_Enabled << ADC_INTENSET_END_Pos);
 
-    err_code = ble_bas_battery_level_update(&m_bas, battery_level);
-    if ((err_code != NRF_SUCCESS) &&
-        (err_code != NRF_ERROR_INVALID_STATE) &&
-        (err_code != BLE_ERROR_NO_TX_BUFFERS) &&
-        (err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING)
-        )
-    {
-        APP_ERROR_HANDLER(err_code);
-    }
+	NRF_ADC->ENABLE		= (ADC_ENABLE_ENABLE_Enabled << ADC_ENABLE_ENABLE_Pos);
 }
 
+/**
+ * @brief Configure ADC for battery measurement and start conversion.
+ */
+static void adc_start_battery_measure(void)
+{
+	NRF_ADC->CONFIG	=	(ADC_CONFIG_RES_8bit << ADC_CONFIG_RES_Pos) |
+						(ADC_CONFIG_INPSEL_SupplyOneThirdPrescaling << ADC_CONFIG_INPSEL_Pos) |
+						(ADC_CONFIG_REFSEL_VBG << ADC_CONFIG_REFSEL_Pos) |
+						(ADC_CONFIG_PSEL_Disabled << ADC_CONFIG_PSEL_Pos) |
+						(ADC_CONFIG_EXTREFSEL_None << ADC_CONFIG_EXTREFSEL_Pos);
 
-/**@brief Function for handling the Battery measurement timer timeout.
+	// ADC needs high freq clock?
+	sd_clock_hfclk_request();
+
+	uint32_t is_running = 0;
+	while(!is_running)
+		sd_clock_hfclk_is_running(&is_running);
+
+	NRF_ADC->TASKS_START = 1;
+}
+
+/**
+ * @brief Get VDD voltage and update battery level.
+ */
+static void adc_update_battery_level(void)
+{
+	uint8_t new_level = NRF_ADC->RESULT * 100 / 255;
+
+	uint32_t err_code = ble_bas_battery_level_update(&m_bas, new_level);
+	if(	(err_code != NRF_SUCCESS) &&
+		(err_code != NRF_ERROR_INVALID_STATE) &&
+		(err_code != BLE_ERROR_NO_TX_BUFFERS) &&
+		(err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING))
+	{
+		APP_ERROR_HANDLER(err_code);
+	}
+}
+
+/**
+ * @brief Function for handling the Battery measurement timer timeout.
  *
  * @details This function will be called each time the battery level measurement timer expires.
  *
@@ -159,10 +183,25 @@ static void battery_level_update(void)
  */
 static void battery_level_meas_timeout_handler(void * p_context)
 {
-    UNUSED_PARAMETER(p_context);
-    battery_level_update();
+	UNUSED_PARAMETER(p_context);
+
+	adc_start_battery_measure();
 }
 
+/**
+ * @brief ADC interrupt handler
+ */
+void ADC_IRQHandler(void)
+{
+	NRF_ADC->EVENTS_END = 0;
+
+	adc_update_battery_level();
+
+	// use the STOP task to save energy; workaround for PAN_028 rev1.5 anomaly 1?
+	NRF_ADC->TASKS_STOP = 1;
+
+	sd_clock_hfclk_release();
+}
 
 /**@brief Function for the Timer initialization.
  *
@@ -260,19 +299,6 @@ static void services_init(void)
 
     err_code = ble_dis_init(&dis_init);
     APP_ERROR_CHECK(err_code);
-}
-
-
-/**@brief Function for initializing the sensor simulators.
- */
-static void sensor_simulator_init(void)
-{
-    m_battery_sim_cfg.min          = MIN_BATTERY_LEVEL;
-    m_battery_sim_cfg.max          = MAX_BATTERY_LEVEL;
-    m_battery_sim_cfg.incr         = BATTERY_LEVEL_INCREMENT;
-    m_battery_sim_cfg.start_at_max = true;
-
-    sensorsim_init(&m_battery_sim_state, &m_battery_sim_cfg);
 }
 
 
@@ -694,7 +720,7 @@ int main(void)
     gap_params_init();
     advertising_init();
     services_init();
-    sensor_simulator_init();
+    adc_init();
     conn_params_init();
 
     // Start execution.
