@@ -10,6 +10,8 @@
  *
  */
 
+#include "battery.h"
+
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -24,7 +26,6 @@
 #include "ble_srv_common.h"
 #include "ble_advdata.h"
 #include "ble_advertising.h"
-#include "ble_bas.h"
 #include "ble_dis.h"
 #include "ble_conn_params.h"
 #include "boards.h"
@@ -58,8 +59,6 @@
 #define APP_TIMER_MAX_TIMERS            (3+BSP_APP_TIMERS_NUMBER)                  /**< Maximum number of simultaneously created timers. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                          /**< Size of timer operation queues. */
 
-#define BATTERY_LEVEL_MEAS_INTERVAL     APP_TIMER_TICKS(2000, APP_TIMER_PRESCALER) /**< Battery level measurement interval (ticks). */
-
 #define MIN_CONN_INTERVAL               MSEC_TO_UNITS(500, UNIT_1_25_MS)           /**< Minimum acceptable connection interval (0.5 seconds) */
 #define MAX_CONN_INTERVAL               MSEC_TO_UNITS(1000, UNIT_1_25_MS)          /**< Maximum acceptable connection interval (1 second). */
 #define SLAVE_LATENCY                   0                                          /**< Slave latency. */
@@ -80,7 +79,6 @@
 
 
 static uint16_t                         m_conn_handle = BLE_CONN_HANDLE_INVALID;   /**< Handle of the current connection. */
-static ble_bas_t                        m_bas;                                     /**< Structure used to identify the battery service. */
 
 static bool                             m_hts_meas_ind_conf_pending = false;       /**< Flag to keep track of when an indication confirmation is pending. */
 
@@ -136,44 +134,6 @@ static void adc_init(void)
 }
 
 /**
- * @brief Configure ADC for battery measurement and start conversion.
- */
-static void adc_start_battery_measure(void)
-{
-	NRF_ADC->CONFIG	=	(ADC_CONFIG_RES_8bit << ADC_CONFIG_RES_Pos) |
-						(ADC_CONFIG_INPSEL_SupplyOneThirdPrescaling << ADC_CONFIG_INPSEL_Pos) |
-						(ADC_CONFIG_REFSEL_VBG << ADC_CONFIG_REFSEL_Pos) |
-						(ADC_CONFIG_PSEL_Disabled << ADC_CONFIG_PSEL_Pos) |
-						(ADC_CONFIG_EXTREFSEL_None << ADC_CONFIG_EXTREFSEL_Pos);
-
-	// ADC needs high freq clock?
-	sd_clock_hfclk_request();
-
-	uint32_t is_running = 0;
-	while(!is_running)
-		sd_clock_hfclk_is_running(&is_running);
-
-	NRF_ADC->TASKS_START = 1;
-}
-
-/**
- * @brief Get VDD voltage and update battery level.
- */
-static void adc_update_battery_level(void)
-{
-	uint8_t new_level = NRF_ADC->RESULT * 100 / 255;
-
-	uint32_t err_code = ble_bas_battery_level_update(&m_bas, new_level);
-	if(	(err_code != NRF_SUCCESS) &&
-		(err_code != NRF_ERROR_INVALID_STATE) &&
-		(err_code != BLE_ERROR_NO_TX_BUFFERS) &&
-		(err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING))
-	{
-		APP_ERROR_HANDLER(err_code);
-	}
-}
-
-/**
  * @brief Function for handling the Battery measurement timer timeout.
  *
  * @details This function will be called each time the battery level measurement timer expires.
@@ -185,7 +145,7 @@ static void battery_level_meas_timeout_handler(void * p_context)
 {
 	UNUSED_PARAMETER(p_context);
 
-	adc_start_battery_measure();
+	battery_measurement_start();
 }
 
 /**
@@ -195,12 +155,7 @@ void ADC_IRQHandler(void)
 {
 	NRF_ADC->EVENTS_END = 0;
 
-	adc_update_battery_level();
-
-	// use the STOP task to save energy; workaround for PAN_028 rev1.5 anomaly 1?
-	NRF_ADC->TASKS_STOP = 1;
-
-	sd_clock_hfclk_release();
+	battery_measurement_finish();
 }
 
 /**@brief Function for the Timer initialization.
@@ -261,28 +216,11 @@ static void gap_params_init(void)
  */
 static void services_init(void)
 {
+	battery_service_init();
+
     uint32_t         err_code;
-    ble_bas_init_t   bas_init;
     ble_dis_init_t   dis_init;
     ble_dis_sys_id_t sys_id;
-
-    // Initialize Battery Service.
-    memset(&bas_init, 0, sizeof(bas_init));
-
-    // Here the sec level for the Battery Service can be changed/increased.
-    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&bas_init.battery_level_char_attr_md.cccd_write_perm);
-    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&bas_init.battery_level_char_attr_md.read_perm);
-    BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&bas_init.battery_level_char_attr_md.write_perm);
-
-    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&bas_init.battery_level_report_read_perm);
-
-    bas_init.evt_handler          = NULL;
-    bas_init.support_notification = true;
-    bas_init.p_report_ref         = NULL;
-    bas_init.initial_batt_level   = 100;
-
-    err_code = ble_bas_init(&m_bas, &bas_init);
-    APP_ERROR_CHECK(err_code);
 
     // Initialize Device Information Service.
     memset(&dis_init, 0, sizeof(dis_init));
@@ -464,7 +402,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
  */
 static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
 {
-    ble_bas_on_ble_evt(&m_bas, p_ble_evt);
+    battery_service_process_event(p_ble_evt);
     ble_conn_params_on_ble_evt(p_ble_evt);
     dm_ble_evt_handler(p_ble_evt);
     bsp_btn_ble_on_ble_evt(p_ble_evt);
