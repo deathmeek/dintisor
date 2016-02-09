@@ -11,6 +11,7 @@
  */
 
 #include "battery.h"
+#include "sense.h"
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -557,22 +558,26 @@ static void advertising_init(void)
 {
     uint32_t      err_code;
     ble_advdata_t advdata;
+    ble_advdata_t srdata;
 
     // Build and set advertising data
     memset(&advdata, 0, sizeof(advdata));
-
     advdata.name_type               = BLE_ADVDATA_FULL_NAME;
     advdata.include_appearance      = true;
     advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
     advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
     advdata.uuids_complete.p_uuids  = m_adv_uuids;
 
+    memset(&srdata, 0, sizeof(srdata));
+    srdata.uuids_complete.uuid_cnt  = 1;
+    srdata.uuids_complete.p_uuids   = &service_uuid;
+
     ble_adv_modes_config_t options = {0};
     options.ble_adv_fast_enabled  = BLE_ADV_FAST_ENABLED;
     options.ble_adv_fast_interval = APP_ADV_INTERVAL;
     options.ble_adv_fast_timeout  = APP_ADV_TIMEOUT_IN_SECONDS;
 
-    err_code = ble_advertising_init(&advdata, NULL, &options, on_adv_evt, NULL);
+    err_code = ble_advertising_init(&advdata, &srdata, &options, on_adv_evt, NULL);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -656,6 +661,7 @@ int main(void)
     ble_stack_init();
     device_manager_init(erase_bonds);
     gap_params_init();
+    sense_service_init();
     advertising_init();
     services_init();
     adc_init();
