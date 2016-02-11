@@ -156,7 +156,21 @@ void ADC_IRQHandler(void)
 {
 	NRF_ADC->EVENTS_END = 0;
 
-	battery_measurement_finish();
+	static uint8_t state = 0;
+
+	switch(state)
+	{
+		case 0:
+			battery_measurement_finish();
+			sense_measurement_start();
+			state = 1;
+			break;
+
+		case 1:
+			sense_measurement_finish();
+			state = 0;
+			break;
+	}
 }
 
 /**@brief Function for the Timer initialization.
@@ -404,6 +418,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
 {
     battery_service_process_event(p_ble_evt);
+    sense_on_ble_event(p_ble_evt);
     ble_conn_params_on_ble_evt(p_ble_evt);
     dm_ble_evt_handler(p_ble_evt);
     bsp_btn_ble_on_ble_evt(p_ble_evt);

@@ -10,6 +10,9 @@
 #include <ble_gap.h>
 #include <ble_gatts.h>
 
+#include <nrf.h>
+#include <nrf_soc.h>
+
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -23,6 +26,8 @@ static uint16_t service_handle;
 static ble_gatts_char_handles_t sense_handle;
 
 static uint8_t sense_value = 0;
+
+static uint16_t conn_handle = BLE_CONN_HANDLE_INVALID;
 
 
 void sense_service_init(void)
@@ -74,4 +79,74 @@ void sense_service_init(void)
 
 	err_code = sd_ble_gatts_characteristic_add(service_handle, &sense_char_md, &sense_attr, &sense_handle);
 	APP_ERROR_CHECK(err_code);
+}
+
+void sense_on_ble_event(ble_evt_t* event)
+{
+	switch(event->header.evt_id)
+	{
+		case BLE_GAP_EVT_CONNECTED:
+			conn_handle = event->evt.gap_evt.conn_handle;
+			break;
+
+		case BLE_GAP_EVT_DISCONNECTED:
+			conn_handle = BLE_CONN_HANDLE_INVALID;
+			break;
+	}
+}
+
+/**
+ * @brief Configure ADC for sensor measurement and start conversion.
+ */
+void sense_measurement_start(void)
+{
+	NRF_ADC->CONFIG	=	(ADC_CONFIG_RES_8bit << ADC_CONFIG_RES_Pos) |
+						(ADC_CONFIG_INPSEL_AnalogInputOneThirdPrescaling << ADC_CONFIG_INPSEL_Pos) |
+						(ADC_CONFIG_REFSEL_VBG << ADC_CONFIG_REFSEL_Pos) |
+						(ADC_CONFIG_PSEL_AnalogInput0 << ADC_CONFIG_PSEL_Pos) |
+						(ADC_CONFIG_EXTREFSEL_None << ADC_CONFIG_EXTREFSEL_Pos);
+
+	// ADC needs high freq clock?
+	sd_clock_hfclk_request();
+
+	uint32_t is_running = 0;
+	while(!is_running)
+		sd_clock_hfclk_is_running(&is_running);
+
+	NRF_ADC->TASKS_START = 1;
+}
+
+/**
+ * @brief Get sensor value and update characteristics.
+ */
+void sense_measurement_finish(void)
+{
+	sense_value = NRF_ADC->RESULT;
+
+	if(conn_handle != BLE_CONN_HANDLE_INVALID)
+	{
+		uint16_t len = sizeof(sense_value);
+
+		ble_gatts_hvx_params_t params;
+		memset(&params, 0, sizeof(params));
+		params.type = BLE_GATT_HVX_NOTIFICATION;
+		params.handle = sense_handle.value_handle;
+		params.p_data = NULL;
+		params.p_len = &len;
+
+		uint32_t err_code = sd_ble_gatts_hvx(conn_handle, &params);
+		if(	(err_code != NRF_SUCCESS) &&
+			(err_code != NRF_ERROR_BUSY) &&
+			(err_code != NRF_ERROR_INVALID_STATE) &&
+			(err_code != BLE_ERROR_NO_TX_BUFFERS) &&
+			(err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING))
+		{
+			APP_ERROR_HANDLER(err_code);
+		}
+	}
+
+	// use the STOP task to save energy; workaround for PAN_028 rev1.5 anomaly 1?
+	NRF_ADC->TASKS_STOP = 1;
+
+	sd_clock_hfclk_release();
 }
