@@ -475,6 +475,8 @@ static void ble_stack_init(void)
  */
 static void bsp_event_handler(bsp_event_t event)
 {
+	static uint8_t state = 0;
+
     uint32_t err_code;
     switch (event)
     {
@@ -498,7 +500,18 @@ static void bsp_event_handler(bsp_event_t event)
             }
             break;
 
-        case BSP_EVENT_KEY_0:
+        case BSP_EVENT_KEY_1:
+        	state = !state;
+        	if(state == 0)
+        	{
+        		bsp_indication_set(BSP_INDICATE_USER_STATE_1);
+        		nrf_gpio_cfg_default(22);
+        	}
+        	else
+        	{
+        		bsp_indication_set(BSP_INDICATE_USER_STATE_2);
+        	    nrf_gpio_cfg_output(22);
+        	}
             break;
 
         default:
