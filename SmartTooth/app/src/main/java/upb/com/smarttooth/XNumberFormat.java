@@ -3,9 +3,6 @@ package upb.com.smarttooth;
 import java.text.FieldPosition;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
-import java.util.Date;
-
-import upb.com.smarttooth.Config;
 
 class XNumberFormat extends NumberFormat {
 

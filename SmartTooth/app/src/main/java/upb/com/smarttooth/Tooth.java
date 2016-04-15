@@ -1,59 +1,172 @@
 package upb.com.smarttooth;
 
+import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothProfile;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.provider.ContactsContract;
 import android.util.Log;
+import android.widget.Toast;
 
-import org.achartengine.GraphicalView;
-import org.achartengine.model.XYMultipleSeriesDataset;
-
-import java.sql.Array;
-import java.util.Arrays;
-import java.util.Date;
+import java.util.List;
 
 public class Tooth {
+    private Activity activity;
+    static public boolean online;
+    private BluetoothAdapter.LeScanCallback callback;
+    private BluetoothAdapter bluetoothAdapter;
+    int REQUEST_ENABLE_BT = 5;
+    BluetoothDevice dev = null;
+    BluetoothGatt bluetoothGatt;
+    BluetoothGattCharacteristic phCharac;
+    BluetoothGattCharacteristic humCharac;
     private static Tooth instance;
-    private final ToothBluetoothManager bm;
-    private boolean online = false;
+    public final DataFrame dataFrame;
+    public final DataFrame dataFrameLong;
 
-    public Tooth(){
+    public Tooth(final Activity activity){
         instance = this;
-        this.bm = new ToothBluetoothManager();
+        //TODO instanciate dataFrameLong
+        dataFrameLong = dataFrame = new DataFrame(new String[]{"PH", "Humidity"}, null, true);
+        this.activity = activity;
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            activity.startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        }
+        if (!activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(activity, "BLE not supported", Toast.LENGTH_SHORT).show();
+            //TODO display more persistent error
+            return;
+        }
+        Log.i("Smartooth", "Scanning started");
+        callback = new BluetoothAdapter.LeScanCallback() {
+            @Override
+            public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
+                Log.e("Smartooth adress" ,device.getAddress());
+                Log.e("Smartooth", "Device found " + device.getName());
+                Log.e("Smartooth", "With UUIDS " + device.getUuids());
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(device.getAddress().equals(Config.TOOTH_MAC)) {
+                            dev = device;
+                            Toast.makeText(activity, "Got a device", Toast.LENGTH_LONG).show();
+                        } else {
+                            Log.d("vertigo", (device.getAddress()));
+                            Log.d("vertigo", Config.TOOTH_MAC);
+                        }
+                    }
+                });
+
+            }
+        };
+        bluetoothAdapter.startLeScan(callback);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(dev == null){
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                bluetoothAdapter.stopLeScan(callback);
+                Log.d("Smarttooth", "Stopped scan");
+                bluetoothGatt = dev.connectGatt(activity, false, btleGattCallback);
+            }
+        }).start();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true){
+                    try {
+                        Thread.sleep(Config.READ_INTERVAL);
+                        if(bluetoothGatt != null) {
+                            if (phCharac != null) {
+                                bluetoothGatt.readCharacteristic(phCharac);
+                            }
+                            if (humCharac != null) {
+                                bluetoothGatt.readCharacteristic(humCharac);
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
     }
 
     public static Tooth getInstance() {
         return instance;
     }
 
-    public void update() {
-        GraphicalView gp = null;
-        GraphicalView gh = null;
-        try {
-            gp = DataStore.data.get("PH").graph;
-            gh = DataStore.data.get("HUM").graph;
-            return;
-        } catch (Exception e){
-            ;
+    private final BluetoothGattCallback btleGattCallback = new BluetoothGattCallback() {
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt, final BluetoothGattCharacteristic characteristic, int status) {
+            // this will get called anytime you perform a read or write characteristic operation
+            final int value = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+            System.out.println("Value is " + value);
+            if(characteristic == phCharac) {
+                dataFrame.update(value, DataFrame.DataType.PH);
+            }
+            if(characteristic == humCharac) {
+                dataFrame.update(value, DataFrame.DataType.Humidity);
+            }
         }
-        DataStore.data.put("PH", new DataFrame(new String[]{"PH"}, gp));
-        DataStore.data.put("HUM", new DataFrame(new String[]{"HUM"}, gh));
-    }
 
-    public void setOnline(boolean online) {
-        this.online = online;
-        if(online) {
-            update();
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, final BluetoothGattCharacteristic characteristic) {
+            // this will get called anytime you perform a read or write characteristic operation
+            System.out.println("Value is " + characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0));
+            System.out.println("Characteristic " + characteristic.toString());
+            for (final BluetoothGattDescriptor descriptor : characteristic.getDescriptors()) {
+                System.out.println(descriptor.getValue());
+            }
         }
-    }
 
-    public boolean isOnline() {
-        return online;
-    }
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            super.onConnectionStateChange(gatt, status, newState);
+            Log.e("Smartooth", "Gatt found " + gatt);
+            Tooth.online = newState == BluetoothProfile.STATE_CONNECTED;
+            if(Tooth.online) {
+                gatt.discoverServices();
+            }
+        }
 
-    public static void updatePH(int value) {
-        DataStore.data.get("PH").update(value);
-    }
+        @Override
+        public void onServicesDiscovered(final BluetoothGatt gatt, final int status) {
+            // this will get called after the client initiates a            BluetoothGatt.discoverServices() call
+            System.out.println("onServicesDiscovered status was " + status);
+            for (BluetoothGattService service : bluetoothGatt.getServices()) {
+                if (service.getUuid().toString().contains(Config.TOOTH_UUID_SERVICE)) {
+                    List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
+                    for (BluetoothGattCharacteristic characteristic : characteristics) {
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_CHARAC_PH)) {
+                            System.out.println("Found ");
+                            phCharac = characteristic;
+                            bluetoothGatt.readCharacteristic(phCharac);
+                        }
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_CHARAC_HUM)) {
+                            System.out.println("Found ");
+                            humCharac = characteristic;
+                        }
+                    }
+                }
+            }
+        }
+    };
 
-    public static void updateHUM(int value) {
-        DataStore.data.get("HUM").update(value);
-    }
 }

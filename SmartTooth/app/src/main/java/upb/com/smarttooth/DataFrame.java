@@ -1,42 +1,43 @@
 package upb.com.smarttooth;
 
-import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.Log;
-import android.widget.ImageView;
 
 import org.achartengine.GraphicalView;
 import org.achartengine.chart.PointStyle;
 import org.achartengine.model.XYMultipleSeriesDataset;
+import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.channels.FileLock;
-import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-
-import adrian.upb.smarttooth.R;
+import java.util.concurrent.locks.Condition;
+import java.util.zip.CheckedInputStream;
 
 public class DataFrame extends ChartHelper{
-    protected final XYMultipleSeriesDataset dataset;
+
+    public enum DataType{
+        Humidity,
+        PH
+    };
+
+    protected XYMultipleSeriesDataset dataset;
     final XYMultipleSeriesRenderer renderer;
+    private final String[] titles;
     public GraphicalView graph;
-    private int pos = 0;
+    private int pos[] = new int[]{0,0};
     Date[] valuesDate;
-    public DataFrame(String[] titles, GraphicalView g){
+    boolean rt;
+    List<double[]> xIndex = new ArrayList<double[]>(5);
+    List<double[]> valuesList = new ArrayList<double[]>(5);
+    public DataFrame(String[] titles, GraphicalView g, boolean rt){
+        this.rt = rt;
         PointStyle[] styles;
         double[] values;
-        List<double[]> xIndex = new ArrayList<double[]>(5);
-        List<double[]> valuesList = new ArrayList<double[]>(5);
         int[] colors;
+        this.titles = titles;
         String title;
         String xlegend = "";
         String ylegend = "";
@@ -54,10 +55,11 @@ public class DataFrame extends ChartHelper{
             valuesDate[i] = new Date();
         }
         xIndex.add(index);
+        xIndex.add(index);
         valuesList.add(values);
-        int GraphColor = Color.argb(255, 153, 153, 204);
-        colors = new int[]{GraphColor};
-        styles = new PointStyle[]{PointStyle.CIRCLE};
+        valuesList.add(values);
+        colors = new int[]{Color.BLUE, Color.GREEN};
+        styles = new PointStyle[]{PointStyle.CIRCLE, PointStyle.TRIANGLE};
         this.renderer = buildRenderer(colors, styles);
         renderer.setXLabelFormat(new XNumberFormat(this));
         setChartSettings(renderer, title, xlegend, ylegend, minX, maxX, minY, maxY, Color.BLACK, Color.BLACK);
@@ -65,7 +67,7 @@ public class DataFrame extends ChartHelper{
         renderer.setPanEnabled(false);
         renderer.setMargins(Config.margins);
         renderer.setZoomEnabled(false, false);
-        renderer.setShowLegend(false);
+        renderer.setShowLegend(true);
         renderer.setMarginsColor(Color.WHITE);
         renderer.setAxesColor(Color.BLACK);
         renderer.setYLabelsColor(0, Color.BLACK);
@@ -80,17 +82,45 @@ public class DataFrame extends ChartHelper{
         this.dataset = buildDataset(titles, xIndex, valuesList);
     }
 
-    public void update(int value) {
+    public void update(int value, DataType dt) {
         try {
+            if (Config.USING_TEST_DEVICE && dt == DataType.Humidity) {
+                //TODO remove this
+                value = value - 10;
+            }
+            int posIndex = 0;
+            if (dt == DataType.Humidity) {
+                posIndex = 1;
+            }
+            Log.e("Value", value + "");
             if (value - 10 < renderer.getYAxisMin())
                 renderer.setYAxisMin(value - 10);
             if (value + 10 > renderer.getYAxisMax())
                 renderer.setYAxisMax(value + 10);
-            dataset.getSeriesAt(0).remove(pos);
-            dataset.getSeriesAt(0).add(pos, pos, value);
-            Log.e("pos", "" + pos);
-            valuesDate[pos] = new Date();
-            Log.e("pos", Config.dateformatOut.format(valuesDate[pos]));
+            XYSeries series = this.dataset.getSeriesAt(posIndex);
+            XYSeries new_series = new XYSeries(titles[posIndex], 0);
+            this.dataset.removeSeries(posIndex);
+            if (pos[posIndex] >= Config.GRAPH_WIDTH) {
+                for (int i = 0; i < Config.GRAPH_WIDTH - 1; i++) {
+                    new_series.add(i, series.getY(i + 1));
+                    valuesDate[i] = valuesDate[i + 1];
+                }
+                new_series.add(Config.GRAPH_WIDTH - 1, value);
+                valuesDate[Config.GRAPH_WIDTH - 1] = new Date();
+            } else {
+                for (int i = 0; i < Config.GRAPH_WIDTH; i++) {
+                    if (i != pos[posIndex]) {
+                        new_series.add(i, series.getY(i));
+                    } else {
+                        new_series.add(i, value);
+                    }
+                }
+                valuesDate[pos[posIndex]] = new Date();
+                pos[posIndex]++;
+            }
+            this.dataset.addSeries(posIndex, new_series);
+            Log.e("pos", "" + pos[posIndex]);
+            Log.e("pos", Config.dateformatOut.format(valuesDate[pos[posIndex]]));
             graph.zoomIn();
             MainActivity.instance.runOnUiThread(new Runnable() {
                 @Override
@@ -98,9 +128,9 @@ public class DataFrame extends ChartHelper{
                     graph.repaint();
                 }
             });
-            pos = (pos+1) % Config.GRAPH_WIDTH;
-        } catch(Exception e){
-            Log.e("CEva sa stricat", e.toString());
+        }
+        catch (Exception e){
+            e.printStackTrace();
         }
     }
 }
