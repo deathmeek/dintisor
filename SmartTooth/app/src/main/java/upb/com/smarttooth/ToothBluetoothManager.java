@@ -108,12 +108,12 @@ public class ToothBluetoothManager {
                 caller.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        if(device.getAddress().equals(Config.TOOTH_MAC)) {
+                        if(Config.TOOTH_MACs.contains(device.getAddress())) {
                             dev = device;
                             Toast.makeText(caller, "Got a device", Toast.LENGTH_LONG).show();
                         } else {
                             Log.d("vertigo", (device.getAddress()));
-                            Log.d("vertigo", Config.TOOTH_MAC);
+                            Log.d("vertigo", Config.TOOTH_MACs.toString());
                         }
                     }
                 });
