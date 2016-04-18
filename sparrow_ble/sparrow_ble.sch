@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="6.1">
+<eagle version="7.5.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
 <setting verticaltext="up"/>
 </settings>
-<grid distance="0.05" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
+<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="no" active="no"/>
 <layer number="2" name="Route2" color="1" fill="3" visible="no" active="no"/>
@@ -14513,8 +14513,8 @@ www.johansontechnology.com&lt;p&gt;
 <part name="T1" library="zetex" deviceset="PMOSSOT23" device="" value="FDV304P"/>
 <part name="R5" library="resistor" deviceset="R-EU_" device="R0402" value="10K"/>
 <part name="P+3" library="SparkFun" deviceset="3.3V" device=""/>
-<part name="R8" library="resistor" deviceset="R-EU_" device="R0402" value="52K3"/>
-<part name="R7" library="resistor" deviceset="R-EU_" device="R0402" value="33k"/>
+<part name="R8" library="resistor" deviceset="R-EU_" device="R0402" value="100K"/>
+<part name="R7" library="resistor" deviceset="R-EU_" device="R0402" value="22K"/>
 <part name="GND19" library="supply1" deviceset="GND" device=""/>
 <part name="R11" library="resistor" deviceset="R-EU_" device="R0402" value="10K"/>
 <part name="R10" library="resistor" deviceset="R-EU_" device="R0402" value="10K"/>
@@ -14576,25 +14576,21 @@ www.johansontechnology.com&lt;p&gt;
 <text x="-128.27" y="40.64" size="6.4516" layer="97" font="vector" ratio="15">RF</text>
 <text x="-22.86" y="58.42" size="6.4516" layer="97" font="vector" ratio="15">NRF51822</text>
 <text x="-129.54" y="121.92" size="6.4516" layer="97" font="vector" ratio="15">CRYSTALS</text>
-<text x="292.227" y="-40.259" size="1.778" layer="91">1.6V reference</text>
-<text x="292.227" y="-42.799" size="1.778" layer="91">10 bit resolution</text>
-<text x="292.227" y="-45.339" size="1.778" layer="91">V_bat= ADC/247.6</text>
+<text x="299.847" y="-22.479" size="1.778" layer="91">1.2V reference, 1/3 prescaling</text>
+<text x="299.847" y="-25.019" size="1.778" layer="91">10 bit resolution</text>
+<text x="299.847" y="-27.559" size="1.778" layer="91">V_bat= (3*1.2)*(ADC/1023)/(100/122)</text>
 <wire x1="-129.54" y1="11.43" x2="113.03" y2="11.43" width="0.8128" layer="97" style="longdash"/>
 <wire x1="113.03" y1="11.43" x2="113.03" y2="-59.69" width="0.8128" layer="97" style="longdash"/>
 <wire x1="113.03" y1="-59.69" x2="-132.08" y2="-59.69" width="0.8128" layer="97" style="longdash"/>
 <wire x1="-132.08" y1="-59.69" x2="-132.08" y2="10.16" width="0.8128" layer="97" style="longdash"/>
-<wire x1="-36.83" y1="-64.77" x2="113.03" y2="-64.77" width="0.8128" layer="97" style="longdash"/>
+<wire x1="-46.99" y1="-64.77" x2="113.03" y2="-64.77" width="0.8128" layer="97" style="longdash"/>
 <wire x1="113.03" y1="-64.77" x2="113.03" y2="-129.54" width="0.8128" layer="97" style="longdash"/>
 <wire x1="113.03" y1="-129.54" x2="-46.99" y2="-129.54" width="0.8128" layer="97" style="longdash"/>
 <wire x1="-46.99" y1="-129.54" x2="-46.99" y2="-64.77" width="0.8128" layer="97" style="longdash"/>
-<wire x1="-46.99" y1="-64.77" x2="-36.83" y2="-64.77" width="0.8128" layer="97" style="longdash"/>
-<wire x1="135.89" y1="12.7" x2="138.43" y2="12.7" width="0.8128" layer="97" style="longdash"/>
-<wire x1="138.43" y1="12.7" x2="379.73" y2="12.7" width="0.8128" layer="97" style="longdash"/>
-<wire x1="379.73" y1="12.7" x2="379.73" y2="-55.88" width="0.8128" layer="97" style="longdash"/>
-<wire x1="379.73" y1="-55.88" x2="379.73" y2="-59.69" width="0.8128" layer="97" style="longdash"/>
+<wire x1="134.62" y1="12.7" x2="379.73" y2="12.7" width="0.8128" layer="97" style="longdash"/>
+<wire x1="379.73" y1="12.7" x2="379.73" y2="-59.69" width="0.8128" layer="97" style="longdash"/>
 <wire x1="379.73" y1="-59.69" x2="134.62" y2="-59.69" width="0.8128" layer="97" style="longdash"/>
 <wire x1="134.62" y1="-59.69" x2="134.62" y2="12.7" width="0.8128" layer="97" style="longdash"/>
-<wire x1="134.62" y1="12.7" x2="138.43" y2="12.7" width="0.8128" layer="97" style="longdash"/>
 <wire x1="135.89" y1="-63.5" x2="297.18" y2="-63.5" width="0.8128" layer="97" style="longdash"/>
 <wire x1="297.18" y1="-63.5" x2="297.18" y2="-129.54" width="0.8128" layer="97" style="longdash"/>
 <wire x1="297.18" y1="-129.54" x2="134.62" y2="-129.54" width="0.8128" layer="97" style="longdash"/>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="6.1">
+<eagle version="7.5.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="yes"/>
@@ -1914,7 +1914,7 @@ www.johansontechnology.com&lt;p&gt;
 <class number="1" name="power" width="0.6096" drill="0">
 </class>
 </classes>
-<designrules>
+<designrules name="default">
 <description language="de">&lt;b&gt;EAGLE Design Rules Prototypen  für PCB-POOL(R)&lt;/b&gt;
 &lt;p&gt;
 Wir haben in diesem DRU File alle notwendigen Design Einstellungen vorgenommen, damit Sie Ihre Leiterplatte 
@@ -2004,6 +2004,9 @@ Covered vias can be set in Masks (Limit).
 <autorouter>
 <pass name="Default">
 <param name="RoutingGrid" value="0.05mm"/>
+<param name="AutoGrid" value="1"/>
+<param name="Efforts" value="0"/>
+<param name="TopRouterVariant" value="1"/>
 <param name="tpViaShape" value="round"/>
 <param name="PrefDir.1" value="*"/>
 <param name="PrefDir.2" value="0"/>
@@ -2220,11 +2223,11 @@ Covered vias can be set in Masks (Limit).
 <attribute name="NAME" x="23.6874" y="24.7224" size="0.8128" layer="25" rot="R180"/>
 <attribute name="VALUE" x="23.535" y="25.332" size="1.27" layer="27" rot="R180"/>
 </element>
-<element name="R8" library="resistor" package="R0402" value="52K3" x="22.9" y="3.6" smashed="yes">
+<element name="R8" library="resistor" package="R0402" value="100K" x="22.9" y="3.6" smashed="yes">
 <attribute name="NAME" x="22.265" y="4.362" size="0.8128" layer="25"/>
 <attribute name="VALUE" x="22.265" y="1.568" size="1.27" layer="27"/>
 </element>
-<element name="R7" library="resistor" package="R0402" value="33k" x="22.9" y="2.2" smashed="yes">
+<element name="R7" library="resistor" package="R0402" value="22K" x="22.9" y="2.2" smashed="yes">
 <attribute name="NAME" x="22.3158" y="0.6506" size="0.8128" layer="25"/>
 <attribute name="VALUE" x="22.265" y="0.168" size="1.27" layer="27"/>
 </element>
