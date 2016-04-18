@@ -12,6 +12,7 @@
 
 #include "battery.h"
 #include "sense.h"
+#include "stimulate.h"
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -419,6 +420,7 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
 {
     battery_service_process_event(p_ble_evt);
     sense_on_ble_event(p_ble_evt);
+    stimulate_on_ble_event(p_ble_evt);
     ble_conn_params_on_ble_evt(p_ble_evt);
     dm_ble_evt_handler(p_ble_evt);
     bsp_btn_ble_on_ble_evt(p_ble_evt);
@@ -690,6 +692,7 @@ int main(void)
     device_manager_init(erase_bonds);
     gap_params_init();
     sense_service_init();
+    stimulate_service_init();
     advertising_init();
     services_init();
     adc_init();
