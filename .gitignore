@@ -1,1 +1,4 @@
 _build
+sparrow_ble/*b#*
+sparrow_ble/*s#*
+sparrow_ble/*.lck
