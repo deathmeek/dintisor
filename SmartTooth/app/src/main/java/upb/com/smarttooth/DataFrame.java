@@ -13,8 +13,6 @@ import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.locks.Condition;
-import java.util.zip.CheckedInputStream;
 
 public class DataFrame extends ChartHelper{
 
@@ -23,8 +21,8 @@ public class DataFrame extends ChartHelper{
         PH
     };
 
-    protected XYMultipleSeriesDataset dataset;
-    final XYMultipleSeriesRenderer renderer;
+    public XYMultipleSeriesDataset dataset;
+    public final XYMultipleSeriesRenderer renderer;
     private final String[] titles;
     public GraphicalView graph;
     private int pos[] = new int[]{0,0};

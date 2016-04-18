@@ -197,6 +197,7 @@
                         android:layout_height="wrap_content"
                         android:inputType="number"
                         android:ems="4"
+                        android:text="100"
                         android:id="@+id/editText_d" />
                 </LinearLayout>
                 <LinearLayout

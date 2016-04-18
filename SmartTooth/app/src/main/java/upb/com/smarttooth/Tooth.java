@@ -9,10 +9,8 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.provider.ContactsContract;
 import android.util.Log;
 import android.widget.Toast;
 
