@@ -1,0 +1,7 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="upb.com.smarttooth.MainActivity">
+    <item
+        android:showAsAction="withText|ifRoom"
+        android:title="Advanced" />
+</menu>
