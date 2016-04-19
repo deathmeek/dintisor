@@ -19,10 +19,8 @@ import java.util.List;
 public class Tooth {
     private Activity activity;
     static public boolean online;
-    private BluetoothAdapter.LeScanCallback callback;
     private BluetoothAdapter bluetoothAdapter;
     int REQUEST_ENABLE_BT = 5;
-    BluetoothDevice dev = null;
     BluetoothGatt bluetoothGatt;
     BluetoothGattCharacteristic phCharac;
     BluetoothGattCharacteristic humCharac;
@@ -45,44 +43,36 @@ public class Tooth {
             //TODO display more persistent error
             return;
         }
+
         Log.i("Smartooth", "Scanning started");
-        callback = new BluetoothAdapter.LeScanCallback() {
+        bluetoothAdapter.startLeScan(new BluetoothAdapter.LeScanCallback() {
             @Override
             public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
                 Log.e("Smartooth adress" ,device.getAddress());
                 Log.e("Smartooth", "Device found " + device.getName());
                 Log.e("Smartooth", "With UUIDS " + device.getUuids());
+
+                if(!Config.TOOTH_MACs.contains(device.getAddress())) {
+                    Log.d("vertigo", (device.getAddress()));
+                    Log.d("vertigo", Config.TOOTH_MACs.toString());
+                    return;
+                }
+
                 activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        if(Config.TOOTH_MACs.contains(device.getAddress())) {
-                            dev = device;
-                            Toast.makeText(activity, "Got a device", Toast.LENGTH_LONG).show();
-                        } else {
-                            Log.d("vertigo", (device.getAddress()));
-                            Log.d("vertigo", Config.TOOTH_MACs.toString());
-                        }
+                        Toast.makeText(activity, "Got a device", Toast.LENGTH_LONG).show();
+
                     }
                 });
 
-            }
-        };
-        bluetoothAdapter.startLeScan(callback);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while(dev == null){
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-                bluetoothAdapter.stopLeScan(callback);
+                bluetoothAdapter.stopLeScan(this);
                 Log.d("Smarttooth", "Stopped scan");
-                bluetoothGatt = dev.connectGatt(activity, false, btleGattCallback);
+
+                bluetoothGatt = device.connectGatt(activity, false, btleGattCallback);
             }
-        }).start();
+        });
+
         new Thread(new Runnable() {
             @Override
             public void run() {
