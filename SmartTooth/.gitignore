@@ -1,9 +1,10 @@
 # OS X crap
 .DS_Store/
 
-# local project settings
+# local/generated project settings
 /.gradle/
 /.idea/
+*.iml
 /local.properties
 
 # build artifacts
