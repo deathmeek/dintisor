@@ -46,17 +46,26 @@ public class Tooth {
 
         Log.i("Smartooth", "Scanning started");
         bluetoothAdapter.startLeScan(new BluetoothAdapter.LeScanCallback() {
+            BluetoothDevice foundDevice = null;
+
             @Override
             public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
                 Log.e("Smartooth adress" ,device.getAddress());
                 Log.e("Smartooth", "Device found " + device.getName());
                 Log.e("Smartooth", "With UUIDS " + device.getUuids());
 
+                if(foundDevice != null) {
+                    Log.d("BLE scan", "device already found, new device " + device.toString());
+                    return;
+                }
+
                 if(!Config.TOOTH_MACs.contains(device.getAddress())) {
                     Log.d("vertigo", (device.getAddress()));
                     Log.d("vertigo", Config.TOOTH_MACs.toString());
                     return;
                 }
+
+                foundDevice = device;
 
                 activity.runOnUiThread(new Runnable() {
                     @Override
