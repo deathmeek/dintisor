@@ -117,8 +117,8 @@ public class DataFrame extends ChartHelper{
                 pos[posIndex]++;
             }
             this.dataset.addSeries(posIndex, new_series);
-            Log.e("pos", "" + pos[posIndex]);
-            Log.e("pos", Config.dateformatOut.format(valuesDate[pos[posIndex]]));
+            Log.e("pos", "" + (pos[posIndex] - 1));
+            Log.e("pos", Config.dateformatOut.format(valuesDate[pos[posIndex] - 1]));
 
             if(graph == null)
                 return;
