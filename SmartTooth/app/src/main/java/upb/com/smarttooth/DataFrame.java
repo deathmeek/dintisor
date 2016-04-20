@@ -119,6 +119,10 @@ public class DataFrame extends ChartHelper{
             this.dataset.addSeries(posIndex, new_series);
             Log.e("pos", "" + pos[posIndex]);
             Log.e("pos", Config.dateformatOut.format(valuesDate[pos[posIndex]]));
+
+            if(graph == null)
+                return;
+
             graph.zoomIn();
             MainActivity.instance.runOnUiThread(new Runnable() {
                 @Override
