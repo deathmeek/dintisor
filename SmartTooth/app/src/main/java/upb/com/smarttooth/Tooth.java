@@ -50,18 +50,16 @@ public class Tooth {
 
             @Override
             public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
-                Log.e("Smartooth adress" ,device.getAddress());
-                Log.e("Smartooth", "Device found " + device.getName());
-                Log.e("Smartooth", "With UUIDS " + device.getUuids());
+                Log.d("BluetoothScan", "device found - " + device.getAddress() + ", "
+                        + device.getName() + ", " + device.getUuids());
 
                 if(foundDevice != null) {
-                    Log.d("BLE scan", "device already found, new device " + device.toString());
+                    Log.d("BluetoothScan", "device already found");
                     return;
                 }
 
                 if(!Config.TOOTH_MACs.contains(device.getAddress())) {
-                    Log.d("vertigo", (device.getAddress()));
-                    Log.d("vertigo", Config.TOOTH_MACs.toString());
+                    Log.d("BluetoothScan", "device not in list - " + Config.TOOTH_MACs.toString());
                     return;
                 }
 
@@ -71,12 +69,10 @@ public class Tooth {
                     @Override
                     public void run() {
                         Toast.makeText(activity, "Got a device", Toast.LENGTH_LONG).show();
-
                     }
                 });
 
                 bluetoothAdapter.stopLeScan(this);
-                Log.d("Smarttooth", "Stopped scan");
 
                 bluetoothGatt = device.connectGatt(activity, false, btleGattCallback);
             }
