@@ -15,7 +15,9 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
+
 
 static const ble_uuid128_t full_uuid = {{0x09, 0x45, 0x37, 0x13, 0xc3, 0xe6, 0x79, 0xb5, 0x8c, 0x41, 0xaf, 0x2e, 0x81, 0xbc, 0x6f, 0x01}};
 static ble_uuid_t service_uuid;
@@ -153,6 +155,56 @@ void stimulate_service_init(void)
 	stimulate_service_add_characteristic(&amplitude_uuid, &amplitude_handle, &amplitude_value, sizeof(amplitude_value));
 }
 
+void stimulate_on_gatts_write_event(ble_gatts_evt_write_t* event)
+{
+	if(event->offset != 0)
+	{
+		printf("stimulate (%hx): write with non-zero offset %zd not supported\n", event->context.char_uuid.uuid, event->offset);
+		return;
+	}
+
+	switch(event->context.char_uuid.uuid)
+	{
+		case 0x0000:
+			if(event->len == 1)
+				break;
+			/* no break */
+
+		case 0x0001:
+		case 0x0002:
+		case 0x0003:
+		case 0x0004:
+		case 0x0005:
+		case 0x0006:
+		case 0x0007:
+			if(event->len == 4)
+				break;
+			/* no break */
+
+		default:
+			printf("stimulate (%hx): write of length %hd not supported\n", event->context.char_uuid.uuid, event->len);
+			return;
+	}
+
+	switch(event->context.char_uuid.uuid)
+	{
+		case 0x0000:
+			printf("stimulate (%hx): write value %hu\n", event->context.char_uuid.uuid, *((uint8_t*)event->data));
+			break;
+
+		case 0x0001:
+		case 0x0002:
+		case 0x0003:
+		case 0x0004:
+		case 0x0005:
+		case 0x0006:
+		case 0x0007:
+		case 0x0008:
+			printf("stimulate (%hx): write value %lu\n", event->context.char_uuid.uuid, *((uint32_t*)event->data));
+			break;
+	}
+}
+
 void stimulate_on_ble_event(ble_evt_t* event)
 {
 	switch(event->header.evt_id)
@@ -163,6 +215,10 @@ void stimulate_on_ble_event(ble_evt_t* event)
 
 		case BLE_GAP_EVT_DISCONNECTED:
 			conn_handle = BLE_CONN_HANDLE_INVALID;
+			break;
+
+		case BLE_GATTS_EVT_WRITE:
+			stimulate_on_gatts_write_event(&event->evt.gatts_evt.params.write);
 			break;
 	}
 }
