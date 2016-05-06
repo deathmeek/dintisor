@@ -64,9 +64,9 @@ static uint32_t t_total_value = 0;
 static uint32_t t_pulse_value = 0;
 static uint32_t t_pause_value = 0;
 static uint32_t t_positive_pulse_value = 0;
-static uint32_t t_positive_pause_value = 0;
+static uint32_t t_positive_pause_value = 100;
 static uint32_t t_negative_pulse_value = 0;
-static uint32_t t_negative_pause_value = 0;
+static uint32_t t_negative_pause_value = 100;
 static uint32_t amplitude_value = 0;
 
 static uint16_t conn_handle = BLE_CONN_HANDLE_INVALID;
