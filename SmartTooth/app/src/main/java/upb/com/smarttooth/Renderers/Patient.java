@@ -64,8 +64,8 @@ public class Patient implements Renderer {
                     }
                     if(expandableLayoutsID[finalI] == R.id.expandableLayout_pastData ){
                         LinearLayout graphLoc = (LinearLayout) rootView.findViewById(R.id.graph_root_view_past);
-                        Tooth.getInstance().dataFrameLong.graph = ChartFactory.getCubeLineChartView(rootView.getContext(),
-                                Tooth.getInstance().dataFrameLong.dataset, Tooth.getInstance().dataFrameLong.renderer,
+                        Tooth.getInstance().dataFrame.graph = ChartFactory.getCubeLineChartView(rootView.getContext(),
+                                Tooth.getInstance().dataFrame.dataset, Tooth.getInstance().dataFrame.renderer,
                                 Config.GRAPHSOFTNESS);
                         graphLoc.addView(Tooth.getInstance().dataFrame.graph);
                     }

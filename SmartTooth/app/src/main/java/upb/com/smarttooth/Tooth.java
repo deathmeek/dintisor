@@ -14,25 +14,33 @@ import android.content.pm.PackageManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.util.HashMap;
 import java.util.List;
 
 public class Tooth {
-    private Activity activity;
     static public boolean online;
     private BluetoothAdapter bluetoothAdapter;
     int REQUEST_ENABLE_BT = 5;
     BluetoothGatt bluetoothGatt;
-    BluetoothGattCharacteristic phCharac;
-    BluetoothGattCharacteristic humCharac;
+    public BluetoothGattCharacteristic phCharac;
+    public BluetoothGattCharacteristic humCharac;
+    public BluetoothGattCharacteristic TTCharac; //not set
+    public BluetoothGattCharacteristic TPCharac;
+    public BluetoothGattCharacteristic TACharac;
+    public BluetoothGattCharacteristic T1Charac;
+    public BluetoothGattCharacteristic T2Charac;
+    public BluetoothGattCharacteristic T3Charac;
+    public BluetoothGattCharacteristic T4Charac;
+    public BluetoothGattCharacteristic VCharac; //not set
+    public BluetoothGattCharacteristic DCharac; //not set
+
+
     private static Tooth instance;
     public final DataFrame dataFrame;
-    public final DataFrame dataFrameLong;
 
     public Tooth(final Activity activity){
         instance = this;
-        //TODO instanciate dataFrameLong
-        dataFrameLong = dataFrame = new DataFrame(new String[]{"PH", "Humidity"}, null, true);
-        this.activity = activity;
+        dataFrame = new DataFrame(new String[]{"PH", "Humidity"}, null, true);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -98,6 +106,11 @@ public class Tooth {
                 }
             }
         }).start();
+
+    }
+    byte[] byteArray = new byte[8];
+    private byte[] convert(Integer integer) {
+        return byteArray;
     }
 
     public static Tooth getInstance() {
@@ -144,22 +157,68 @@ public class Tooth {
             // this will get called after the client initiates a            BluetoothGatt.discoverServices() call
             System.out.println("onServicesDiscovered status was " + status);
             for (BluetoothGattService service : bluetoothGatt.getServices()) {
-                if (service.getUuid().toString().contains(Config.TOOTH_UUID_SERVICE)) {
+                if (service.getUuid().toString().contains(Config.TOOTH_UUID_IN_SERVICE)) {
                     List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
                     for (BluetoothGattCharacteristic characteristic : characteristics) {
-                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_CHARAC_PH)) {
-                            System.out.println("Found ");
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_IN_CHARAC_PH)) {
+                            System.out.println("Found Ph");
                             phCharac = characteristic;
-                            bluetoothGatt.readCharacteristic(phCharac);
                         }
-                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_CHARAC_HUM)) {
-                            System.out.println("Found ");
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_IN_CHARAC_HUM)) {
+                            System.out.println("Found Hum");
                             humCharac = characteristic;
                         }
+                    }
+                }
+                if (service.getUuid().toString().contains(Config.TOOTH_UUID_OUT_SERVICE)) {
+                    List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
+                    for (BluetoothGattCharacteristic characteristic : characteristics) {
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_OUT_TT)) {
+                            System.out.println("Found TT");
+                            TTCharac = characteristic;
+                        }
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_OUT_TA)) {
+                            System.out.println("Found TA");
+                            TACharac = characteristic;
+                        }
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_OUT_TP)) {
+                            System.out.println("Found TP");
+                            TPCharac = characteristic;
+                        }
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_OUT_T1)) {
+                            System.out.println("Found T1");
+                            T1Charac = characteristic;
+                        }
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_OUT_T2)) {
+                            System.out.println("Found T2");
+                            T2Charac = characteristic;
+                        }
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_OUT_T3)) {
+                            System.out.println("Found T3");
+                            T3Charac = characteristic;
+                        }
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_OUT_T4)) {
+                            System.out.println("Found T4");
+                            T4Charac = characteristic;
+                        }
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_OUT_D)) {
+                            System.out.println("Found D");
+                            DCharac = characteristic;
+                        }
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_OUT_V)) {
+                            System.out.println("Found V");
+                            VCharac = characteristic;
+                        }
+
                     }
                 }
             }
         }
     };
 
+    public void setCharact(BluetoothGattCharacteristic c, int v) {
+        if(c != null ){
+            c.setValue(convert(v));
+        }
+    }
 }
