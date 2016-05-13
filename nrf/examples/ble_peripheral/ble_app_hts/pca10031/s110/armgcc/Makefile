@@ -47,6 +47,7 @@ $(abspath ../../../../../../components/drivers_nrf/uart/app_uart_fifo.c) \
 $(abspath ../../../../../../components/drivers_nrf/hal/nrf_delay.c) \
 $(abspath ../../../../../../components/drivers_nrf/common/nrf_drv_common.c) \
 $(abspath ../../../../../../components/drivers_nrf/gpiote/nrf_drv_gpiote.c) \
+$(abspath ../../../../../../components/drivers_nrf/ppi/nrf_drv_ppi.c) \
 $(abspath ../../../../../../components/drivers_nrf/pstorage/pstorage.c) \
 $(abspath ../../../../../../components/drivers_nrf/timer/nrf_drv_timer.c) \
 $(abspath ../../../../../bsp/bsp.c) \
@@ -75,6 +76,7 @@ INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_services/ble_hts)
 INC_PATHS += -I$(abspath ../../../../../bsp)
 INC_PATHS += -I$(abspath ../../../../../../components/libraries/fifo)
 INC_PATHS += -I$(abspath ../../../../../../components/libraries/util)
+INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/ppi)
 INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/pstorage)
 INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/uart)
 INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/timer)

@@ -6,8 +6,9 @@
  */
 
 #include <nrf.h>
+#include <nrf_drv_gpiote.h>
+#include <nrf_drv_ppi.h>
 #include <nrf_drv_timer.h>
-#include <nrf_gpio.h>
 #include <nrf_soc.h>
 
 #include <app_error.h>
@@ -34,6 +35,10 @@ static void stimulate_timer_event(nrf_timer_event_t, void*);
 
 static uint16_t compute_timer_compare(uint32_t*);
 
+
+static const uint32_t enable_pin = 5;
+static const uint32_t positive_pin = 3;
+static const uint32_t negative_pin = 4;
 
 static const ble_uuid128_t full_uuid = {{0x09, 0x45, 0x37, 0x13, 0xc3, 0xe6, 0x79, 0xb5, 0x8c, 0x41, 0xaf, 0x2e, 0x81, 0xbc, 0x6f, 0x01}};
 static ble_uuid_t service_uuid;
@@ -64,9 +69,9 @@ static uint32_t t_total_value = 0;
 static uint32_t t_pulse_value = 0;
 static uint32_t t_pause_value = 0;
 static uint32_t t_positive_pulse_value = 0;
-static uint32_t t_positive_pause_value = 100;
+static uint32_t t_positive_pause_value = 0;
 static uint32_t t_negative_pulse_value = 0;
-static uint32_t t_negative_pause_value = 100;
+static uint32_t t_negative_pause_value = 0;
 static uint32_t amplitude_value = 0;
 
 static uint16_t conn_handle = BLE_CONN_HANDLE_INVALID;
@@ -74,7 +79,6 @@ static uint16_t conn_handle = BLE_CONN_HANDLE_INVALID;
 // must update compute_timer_compare when changing timer configuration
 static const nrf_drv_timer_t stimulate_timer = NRF_DRV_TIMER_INSTANCE(1);
 static const nrf_drv_timer_config_t stimulate_timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG(1);
-static volatile uint8_t update_required = 0;
 static volatile uint16_t compare0;
 static volatile uint16_t compare1;
 static volatile uint16_t compare2;
@@ -103,6 +107,34 @@ static uint16_t compute_timer_compare(uint32_t* value)
 
 	*value = (*value / min_value) * min_value;
 	return *value / min_value;
+}
+
+static void setup_pulse_pin(nrf_drv_gpiote_pin_t pin,
+		nrf_timer_event_t first_toggle_event,
+		nrf_timer_event_t second_toggle_event)
+{
+	// configure GPIOTE, pin action is toggle, initial value is LOW
+	nrf_drv_gpiote_out_config_t toggle_cfg = GPIOTE_CONFIG_OUT_TASK_TOGGLE(0);
+	APP_ERROR_CHECK(nrf_drv_gpiote_out_init(pin, &toggle_cfg));
+
+	// configure first toggle PPI channel
+	nrf_ppi_channel_t first_toggle_channel;
+	uint32_t first_event_addr = nrf_drv_timer_event_address_get(&stimulate_timer, first_toggle_event);
+	uint32_t first_task_addr = nrf_drv_gpiote_out_task_addr_get(pin);
+	APP_ERROR_CHECK(nrf_drv_ppi_channel_alloc(&first_toggle_channel));
+	APP_ERROR_CHECK(nrf_drv_ppi_channel_assign(first_toggle_channel, first_event_addr, first_task_addr));
+
+	// configure second toggle PPI channel
+	nrf_ppi_channel_t second_toggle_channel;
+	uint32_t second_event_addr = nrf_drv_timer_event_address_get(&stimulate_timer, second_toggle_event);
+	uint32_t second_task_addr = nrf_drv_gpiote_out_task_addr_get(pin);
+	APP_ERROR_CHECK(nrf_drv_ppi_channel_alloc(&second_toggle_channel));
+	APP_ERROR_CHECK(nrf_drv_ppi_channel_assign(second_toggle_channel, second_event_addr, second_task_addr));
+
+	// activate channels
+	APP_ERROR_CHECK(nrf_drv_ppi_channel_enable(first_toggle_channel));
+	APP_ERROR_CHECK(nrf_drv_ppi_channel_enable(second_toggle_channel));
+	nrf_drv_gpiote_out_task_enable(pin);
 }
 
 void stimulate_service_add_characteristic(
@@ -204,16 +236,33 @@ void stimulate_service_init(void)
 	stimulate_service_add_characteristic(&t_negative_pause_uuid, &t_negative_pause_handle, &t_negative_pause_value, sizeof(t_negative_pause_value));
 	stimulate_service_add_characteristic(&amplitude_uuid, &amplitude_handle, &amplitude_value, sizeof(amplitude_value));
 
+	// init GPIO task and events module
+	if(!nrf_drv_gpiote_is_init())
+	{
+		err_code = nrf_drv_gpiote_init();
+		APP_ERROR_CHECK(err_code);
+	}
+
+	// init programmable peripheral interconnect
+	err_code = nrf_drv_ppi_init();
+	APP_ERROR_CHECK(err_code);
+
+	// init timer module
 	err_code = nrf_drv_timer_init(&stimulate_timer, &stimulate_timer_cfg, stimulate_timer_event);
 	APP_ERROR_CHECK(err_code);
 
-	// configure H-bridge controls, disabling the bridge
-	NRF_GPIO->OUTCLR = (1 << 3) | (1 << 4);
-	NRF_GPIO->DIRSET = (1 << 3) | (1 << 4);
+	// configure H-bridge controls when GPIOTE is inactive
+	// default state of H-bridge is disabled
+	NRF_GPIO->OUTCLR = (1 << positive_pin) | (1 << negative_pin);
+	NRF_GPIO->DIRSET = (1 << positive_pin) | (1 << negative_pin);
 
-	// configure stimulation voltage source controls, disabling the source
-	NRF_GPIO->OUTCLR = (1 << 5);
-	NRF_GPIO->DIRSET = (1 << 5);
+	// configure stimulation voltage source control, disabling the source
+	NRF_GPIO->OUTCLR = (1 << enable_pin);
+	NRF_GPIO->DIRSET = (1 << enable_pin);
+
+	// configure H-bridge controls when under the control of GPIOTE
+	setup_pulse_pin((nrf_drv_gpiote_pin_t)positive_pin, NRF_TIMER_EVENT_COMPARE0, NRF_TIMER_EVENT_COMPARE1);
+	setup_pulse_pin((nrf_drv_gpiote_pin_t)negative_pin, NRF_TIMER_EVENT_COMPARE2, NRF_TIMER_EVENT_COMPARE3);
 }
 
 void stimulate_on_gatts_write_event(ble_gatts_evt_write_t* event)
@@ -316,10 +365,14 @@ static void stimulate_compute_config(void)
 {
 	// positive pulse
 	compare0 = compute_timer_compare(&t_positive_pause_value) + 0;
+	if(t_positive_pause_value == 0 && t_positive_pulse_value != 0)	// no pulse without pause
+		compare0++;
 	compare1 = compute_timer_compare(&t_positive_pulse_value) + compare0;
 
 	// negative pulse
 	compare2 = compute_timer_compare(&t_negative_pause_value) + compare1;
+	if(t_negative_pause_value == 0 && t_negative_pulse_value != 0)	// no pulse without pause
+		compare2++;
 	compare3 = compute_timer_compare(&t_negative_pulse_value) + compare2;
 }
 
@@ -331,29 +384,39 @@ static void stimulate_update_config(uint8_t timer_running)
 		CRITICAL_REGION_ENTER();
 
 		// reconfiguration is delayed until the end of the pulse period
-		update_required = 1;
 		nrf_timer_shorts_enable(stimulate_timer.p_reg, NRF_TIMER_SHORT_COMPARE3_STOP_MASK);
+		nrf_drv_timer_compare_int_enable(&stimulate_timer, NRF_TIMER_CC_CHANNEL3);
 
 		CRITICAL_REGION_EXIT();
 	}
 	else
 	{
 		// update pulse configuration
-		nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL0, compare0, true);
-		nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL1, compare1, true);
-		nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL2, compare2, true);
-		nrf_drv_timer_extended_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL3, compare3, NRF_TIMER_SHORT_COMPARE3_CLEAR_MASK, true);
-		update_required = 0;
+		nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL0, compare0, false);
+		nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL1, compare1, false);
+		nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL2, compare2, false);
+		nrf_drv_timer_extended_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL3, compare3, NRF_TIMER_SHORT_COMPARE3_CLEAR_MASK, false);
+
+		// pulse pin toggling doesn't work if duration is 0, replace with task disabling
+		if(compare0 != compare1)
+			nrf_drv_gpiote_out_task_enable((nrf_drv_gpiote_pin_t)positive_pin);
+		else
+			nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)positive_pin);
+		if(compare2 != compare3)
+			nrf_drv_gpiote_out_task_enable((nrf_drv_gpiote_pin_t)negative_pin);
+		else
+			nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)negative_pin);
 	}
 }
 
 static void stimulate_start(void)
 {
 	// make sure H-bridge is disabled
-	NRF_GPIO->OUTCLR = (1 << 3) | (1 << 4);
+	nrf_drv_gpiote_out_clear((nrf_drv_gpiote_pin_t)positive_pin);
+	nrf_drv_gpiote_out_clear((nrf_drv_gpiote_pin_t)negative_pin);
 
 	// enable stimulation voltage source
-	NRF_GPIO->OUTSET = (1 << 5);
+	NRF_GPIO->OUTSET = (1 << enable_pin);
 
 	stimulate_compute_config();
 	stimulate_update_config(false);
@@ -365,42 +428,30 @@ static void stimulate_stop(void)
 	nrf_drv_timer_disable(&stimulate_timer);
 
 	// disable stimulation voltage source
-	NRF_GPIO->OUTCLR = (1 << 5);
+	NRF_GPIO->OUTCLR = (1 << enable_pin);
 
 	// make sure H-bridge is disabled
-	NRF_GPIO->OUTCLR = (1 << 3) | (1 << 4);
+	nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)positive_pin);
+	nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)negative_pin);
 }
 
 static void stimulate_timer_event(nrf_timer_event_t event_type, void* p_context)
 {
 	switch(event_type)
 	{
-		case NRF_TIMER_EVENT_COMPARE0:
-			nrf_gpio_pin_toggle(3);
-			break;
-
-		case NRF_TIMER_EVENT_COMPARE1:
-			nrf_gpio_pin_toggle(3);
-			break;
-
-		case NRF_TIMER_EVENT_COMPARE2:
-			nrf_gpio_pin_toggle(4);
-			break;
-
 		case NRF_TIMER_EVENT_COMPARE3:
-			nrf_gpio_pin_toggle(4);
-
 			// protect against concurrent execution with reconfiguration request
 			CRITICAL_REGION_ENTER();
 
-			if(update_required)
-			{
-				// timer is no longer running at this point
-				stimulate_update_config(false);
-				nrf_drv_timer_enable(&stimulate_timer);
-			}
+			// timer is no longer running at this point
+			// update config and re-enable
+			stimulate_update_config(false);
+			nrf_drv_timer_enable(&stimulate_timer);
 
 			CRITICAL_REGION_EXIT();
+			break;
+
+		default:
 			break;
 	}
 }
