@@ -20,15 +20,17 @@ public class Config {
     //Todo
     public static final String TOOTH_UUID_IN_CHARAC_HUM = "131e0000-7f9e-49ab-827d-1b033f2bf585";
     public static final String TOOTH_UUID_OUT_SERVICE = "016fbc81-2eaf-418c-b579-e6c313374509";
-    public static final String TOOTH_UUID_OUT_TT = "016f0000-2eaf-418c-b579-e6c313374509";
-    public static final String TOOTH_UUID_OUT_TP = "016f0001-2eaf-418c-b579-e6c313374509";
+
+    public static final String TOOTH_UUID_OUT_ST = "016f0000-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_TT = "016f0001-2eaf-418c-b579-e6c313374509";
     public static final String TOOTH_UUID_OUT_TA = "016f0002-2eaf-418c-b579-e6c313374509";
-    public static final String TOOTH_UUID_OUT_T1 = "016f0003-2eaf-418c-b579-e6c313374509";
-    public static final String TOOTH_UUID_OUT_T2 = "016f0004-2eaf-418c-b579-e6c313374509";
-    public static final String TOOTH_UUID_OUT_T3 = "016f0005-2eaf-418c-b579-e6c313374509";
-    public static final String TOOTH_UUID_OUT_T4 = "016f0006-2eaf-418c-b579-e6c313374509";
-    public static final String TOOTH_UUID_OUT_V = "016f0007-2eaf-418c-b579-e6c313374509";
-    public static final String TOOTH_UUID_OUT_D = "016f0008-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_TP = "016f0003-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_T1 = "016f0004-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_T2 = "016f0005-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_T3 = "016f0006-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_T4 = "016f0007-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_V  = "016f0008-2eaf-418c-b579-e6c313374509";
+
     public static final int GRAPH_WIDTH = 20;
     public static DateFormat dateformatOut = new SimpleDateFormat("mm:ss");
     public static float XLabelsAngle = 300f;
