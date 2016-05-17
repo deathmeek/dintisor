@@ -7,6 +7,9 @@ import java.util.UUID;
 
 public class Config {
     public static final HashSet<String> TOOTH_MACs = new HashSet<String>();
+    public static final int MIN_PULSE_TIME = 32;
+    public static final int MIN_PAUSE_TIME = 30;
+
     static {
         TOOTH_MACs.add("CA:79:B5:CE:FF:2E");
         TOOTH_MACs.add("E0:AF:DB:0E:9F:64");
