@@ -12,10 +12,13 @@ import android.bluetooth.BluetoothProfile;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.util.Log;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import java.util.HashMap;
 import java.util.List;
+
+import adrian.upb.smarttooth.R;
 
 public class Tooth {
     static public boolean online;
@@ -24,16 +27,15 @@ public class Tooth {
     BluetoothGatt bluetoothGatt;
     public BluetoothGattCharacteristic phCharac;
     public BluetoothGattCharacteristic humCharac;
-    public BluetoothGattCharacteristic TTCharac; //not set
+    public BluetoothGattCharacteristic TTCharac;
     public BluetoothGattCharacteristic TPCharac;
     public BluetoothGattCharacteristic TACharac;
     public BluetoothGattCharacteristic T1Charac;
     public BluetoothGattCharacteristic T2Charac;
     public BluetoothGattCharacteristic T3Charac;
     public BluetoothGattCharacteristic T4Charac;
-    public BluetoothGattCharacteristic VCharac; //not set
-    public BluetoothGattCharacteristic DCharac; //not set
-
+    public BluetoothGattCharacteristic VCharac;
+    public BluetoothGattCharacteristic STCharac;
 
     private static Tooth instance;
     public final DataFrame dataFrame;
@@ -108,10 +110,6 @@ public class Tooth {
         }).start();
 
     }
-    byte[] byteArray = new byte[8];
-    private byte[] convert(Integer integer) {
-        return byteArray;
-    }
 
     public static Tooth getInstance() {
         return instance;
@@ -119,6 +117,10 @@ public class Tooth {
 
     private final BluetoothGattCallback btleGattCallback = new BluetoothGattCallback() {
 
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt, final BluetoothGattCharacteristic characteristic, int status) {
+            System.out.println("Characteristic was written ");
+        }
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt, final BluetoothGattCharacteristic characteristic, int status) {
             // this will get called anytime you perform a read or write characteristic operation
@@ -201,9 +203,9 @@ public class Tooth {
                             System.out.println("Found T4");
                             T4Charac = characteristic;
                         }
-                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_OUT_D)) {
-                            System.out.println("Found D");
-                            DCharac = characteristic;
+                        if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_OUT_ST)) {
+                            System.out.println("Found ST");
+                            STCharac = characteristic;
                         }
                         if (characteristic.getUuid().toString().contains(Config.TOOTH_UUID_OUT_V)) {
                             System.out.println("Found V");
@@ -216,9 +218,26 @@ public class Tooth {
         }
     };
 
-    public void setCharact(BluetoothGattCharacteristic c, int v) {
-        if(c != null ){
-            c.setValue(convert(v));
+    public void setCharact(EditText c, int v) {
+        BluetoothGattCharacteristic charac = mapTextToCharac(c);
+        if(charac != null ){
+            charac.setValue(v, BluetoothGattCharacteristic.FORMAT_UINT32, 0);
+            bluetoothGatt.writeCharacteristic(charac);
+        }
+    }
+
+    private BluetoothGattCharacteristic mapTextToCharac(EditText c) {
+        int id = c.getId();
+        switch (id){
+            case R.id.editText_Voltage: { return VCharac; }
+            case R.id.numberPickerT1: { return T1Charac; }
+            case R.id.numberPickerT2: { return T2Charac; }
+            case R.id.numberPickerT3: { return T3Charac; }
+            case R.id.numberPickerT4: { return T4Charac; }
+            case R.id.numberPickerTA: { return TACharac; }
+            case R.id.numberPickerTP: { return TPCharac; }
+            case R.id.numberPickerTT: { return TTCharac; }
+            default: return null;
         }
     }
 }
