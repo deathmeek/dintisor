@@ -7,6 +7,9 @@ import java.util.UUID;
 
 public class Config {
     public static final HashSet<String> TOOTH_MACs = new HashSet<String>();
+    public static final int MIN_PULSE_TIME = 32;
+    public static final int MIN_PAUSE_TIME = 30;
+
     static {
         TOOTH_MACs.add("CA:79:B5:CE:FF:2E");
         TOOTH_MACs.add("E0:AF:DB:0E:9F:64");
@@ -14,13 +17,24 @@ public class Config {
         TOOTH_MACs.add("D1:43:87:EE:3D:06");
         TOOTH_MACs.add("DB:AE:F9:E7:EB:6A");
     }
-    public static final int BUFFSIZE = 512;
     public static final int READ_INTERVAL = 3 * 1000;
-    public static final String TOOTH_UUID_SERVICE = "131e922d-7f9e-49ab-827d-1b033f2bf585";
-    public static final String TOOTH_UUID_CHARAC_PH = "131e0000-7f9e-49ab-827d-1b033f2bf585";
-    public static final String TOOTH_UUID_CHARAC_HUM = "131e0000-7f9e-49ab-827d-1b033f2bf585";
+    public static final String TOOTH_UUID_IN_SERVICE = "131e922d-7f9e-49ab-827d-1b033f2bf585";
+    public static final String TOOTH_UUID_IN_CHARAC_PH = "131e0000-7f9e-49ab-827d-1b033f2bf585";
+    //Todo
+    public static final String TOOTH_UUID_IN_CHARAC_HUM = "131e0000-7f9e-49ab-827d-1b033f2bf585";
+    public static final String TOOTH_UUID_OUT_SERVICE = "016fbc81-2eaf-418c-b579-e6c313374509";
+
+    public static final String TOOTH_UUID_OUT_ST = "016f0000-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_TT = "016f0001-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_TA = "016f0002-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_TP = "016f0003-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_T1 = "016f0004-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_T2 = "016f0005-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_T3 = "016f0006-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_T4 = "016f0007-2eaf-418c-b579-e6c313374509";
+    public static final String TOOTH_UUID_OUT_V  = "016f0008-2eaf-418c-b579-e6c313374509";
+
     public static final int GRAPH_WIDTH = 20;
-    public static DateFormat dateformatIn = new SimpleDateFormat("yyyy-MM-dd hh:mm:ssZ");
     public static DateFormat dateformatOut = new SimpleDateFormat("mm:ss");
     public static float XLabelsAngle = 300f;
     public static int[] margins = new int[]{5,75,35,5};
