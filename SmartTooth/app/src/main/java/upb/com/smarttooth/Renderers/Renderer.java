@@ -6,5 +6,5 @@ import android.view.View;
 public interface Renderer {
     void render(View rootView);
 
-    void onOptionsItemSelected(MenuItem item);
+    boolean onOptionsItemSelected(MenuItem item);
 }

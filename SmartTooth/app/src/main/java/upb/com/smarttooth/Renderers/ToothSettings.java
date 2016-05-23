@@ -1,6 +1,5 @@
 package upb.com.smarttooth.Renderers;
 
-import android.bluetooth.BluetoothGattCharacteristic;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -20,8 +19,7 @@ public class ToothSettings implements Renderer {
     EditText T2;
     EditText T3;
     EditText T4;
-    final int[] expandableLayoutsID = new int[]{R.id.expandableLayout_T2, R.id.expandableLayout_T4};
-    final ExpandableRelativeLayout[] expandableLayouts = new ExpandableRelativeLayout[expandableLayoutsID.length];
+    private View rootView;
 
     private void updateT14(EditText e){
         int val = 0;
@@ -90,9 +88,7 @@ public class ToothSettings implements Renderer {
 
     @Override
     public void render(View rootView) {
-        for(int i = 0; i < expandableLayoutsID.length; i++) {
-            expandableLayouts[i] = (ExpandableRelativeLayout) rootView.findViewById(expandableLayoutsID[i]);
-        }
+        this.rootView = rootView;
         Ta = (EditText) rootView.findViewById(R.id.numberPickerTA);
         Tp = (EditText) rootView.findViewById(R.id.numberPickerTP);
         Tt = (EditText) rootView.findViewById(R.id.numberPickerTT);
@@ -139,11 +135,15 @@ public class ToothSettings implements Renderer {
             }
         });
     }
-
     @Override
-    public void onOptionsItemSelected(MenuItem item) {
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        final int[] expandableLayoutsID = new int[]{R.id.expandableLayout_T2, R.id.expandableLayout_T4};
+        final ExpandableRelativeLayout[] expandableLayouts = new ExpandableRelativeLayout[expandableLayoutsID.length];
         for(int i = 0; i < expandableLayoutsID.length; i++) {
+            expandableLayouts[i] = (ExpandableRelativeLayout) rootView.findViewById(expandableLayoutsID[i]);
             expandableLayouts[i].toggle();
         }
+        return true;
     }
 }

@@ -75,7 +75,7 @@ public class Patient implements Renderer {
     }
 
     @Override
-    public void onOptionsItemSelected(MenuItem item) {
-
+    public boolean onOptionsItemSelected(MenuItem item) {
+        return true;
     }
 }

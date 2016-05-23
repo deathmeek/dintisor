@@ -125,16 +125,11 @@ public class MainActivity extends Activity
             if(menus[sn] != 0) {
                 inflater.inflate(menus[sn], menu);
             }
-             Log.e("test", "meniul se apeleaza");
         }
         @Override
         public boolean onOptionsItemSelected (MenuItem item){
             int sn =  getArguments().getInt(ARG_SECTION_NUMBER);
-            if(menus[sn] != 0) {
-                renderers[sn].onOptionsItemSelected(item);
-            }
-            Log.e("test", "meniul se apeleaza");
-            return true;
+            return renderers[sn].onOptionsItemSelected(item);
         }
     }
 
