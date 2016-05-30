@@ -364,7 +364,7 @@ void stimulate_on_gatts_write_event(ble_gatts_evt_write_t* event)
 		case 0x0000:
 			if(event->len == 1)
 				break;
-			/* no break */
+			goto bad_length;
 
 		case 0x0001:
 		case 0x0002:
@@ -375,9 +375,10 @@ void stimulate_on_gatts_write_event(ble_gatts_evt_write_t* event)
 		case 0x0007:
 			if(event->len == 4)
 				break;
-			/* no break */
+			goto bad_length;
 
 		default:
+		bad_length:
 			printf("stimulate (%hx): write of length %hd not supported\n", event->context.char_uuid.uuid, event->len);
 			return;
 	}
