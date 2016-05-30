@@ -692,3 +692,56 @@ static void handle_timer_event(void* context)
 	stimulate_stop();
 	stimulate_prev = stimulate_value = 0;
 }
+
+void stimulate_measurement_start(void)
+{
+	NRF_ADC->CONFIG	=	(ADC_CONFIG_RES_10bit << ADC_CONFIG_RES_Pos) |
+						(ADC_CONFIG_INPSEL_AnalogInputOneThirdPrescaling << ADC_CONFIG_INPSEL_Pos) |
+						(ADC_CONFIG_REFSEL_VBG << ADC_CONFIG_REFSEL_Pos) |
+						(ADC_CONFIG_PSEL_AnalogInput3 << ADC_CONFIG_PSEL_Pos) |
+						(ADC_CONFIG_EXTREFSEL_None << ADC_CONFIG_EXTREFSEL_Pos);
+
+	// ADC needs high freq clock?
+	sd_clock_hfclk_request();
+
+	uint32_t is_running = 0;
+	while(!is_running)
+		sd_clock_hfclk_is_running(&is_running);
+
+	NRF_ADC->TASKS_START = 1;
+}
+
+/**
+ * @brief Get sensor value and update characteristics.
+ */
+void stimulate_measurement_finish(void)
+{
+	amplitude_value = NRF_ADC->RESULT * 12 * 3 * 1350 / 1024; // (x / 1024) * 1.2 * 3 * (15 / (15 + 1.2)) * 1000
+
+	if(conn_handle != BLE_CONN_HANDLE_INVALID)
+	{
+		uint16_t len = sizeof(amplitude_value);
+
+		ble_gatts_hvx_params_t params;
+		memset(&params, 0, sizeof(params));
+		params.type = BLE_GATT_HVX_NOTIFICATION;
+		params.handle = amplitude_handle.value_handle;
+		params.p_data = NULL;
+		params.p_len = &len;
+
+		uint32_t err_code = sd_ble_gatts_hvx(conn_handle, &params);
+		if(	(err_code != NRF_SUCCESS) &&
+			(err_code != NRF_ERROR_BUSY) &&
+			(err_code != NRF_ERROR_INVALID_STATE) &&
+			(err_code != BLE_ERROR_NO_TX_BUFFERS) &&
+			(err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING))
+		{
+			APP_ERROR_HANDLER(err_code);
+		}
+	}
+
+	// use the STOP task to save energy; workaround for PAN_028 rev1.5 anomaly 1?
+	NRF_ADC->TASKS_STOP = 1;
+
+	sd_clock_hfclk_release();
+}

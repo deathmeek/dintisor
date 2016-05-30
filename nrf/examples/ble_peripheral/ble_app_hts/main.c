@@ -169,6 +169,12 @@ void ADC_IRQHandler(void)
 
 		case 1:
 			sense_measurement_finish();
+			stimulate_measurement_start();
+			state = 2;
+			break;
+
+		case 2:
+			stimulate_measurement_finish();
 			state = 0;
 			break;
 	}
