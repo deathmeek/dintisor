@@ -567,9 +567,9 @@ static void stimulate_timer_event(nrf_timer_event_t event_type, void* p_context)
 
 static void stimulate_start_pulse(void)
 {
-	// make sure H-bridge is disabled
-	nrf_drv_gpiote_out_clear((nrf_drv_gpiote_pin_t)positive_pin);
-	nrf_drv_gpiote_out_clear((nrf_drv_gpiote_pin_t)negative_pin);
+	// make sure toggling starts with H-bridge disabled
+	nrf_drv_gpiote_out_task_force((nrf_drv_gpiote_pin_t)positive_pin, 0);
+	nrf_drv_gpiote_out_task_force((nrf_drv_gpiote_pin_t)negative_pin, 0);
 
 	stimulate_compute_config();
 	stimulate_update_config(TIMER_STOPPED);
