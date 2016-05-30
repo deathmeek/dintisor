@@ -12,6 +12,7 @@
 #include <nrf_soc.h>
 
 #include <app_error.h>
+#include <app_timer.h>
 #include <app_util_platform.h>
 
 #include <ble.h>
@@ -39,6 +40,7 @@ static void stimulate_start_train_on(void);
 static void stimulate_start_train_off(void);
 static void stimulate_stop_train(void);
 static void handle_train_timer_event(nrf_timer_event_t, void*);
+static void handle_timer_event(void*);
 
 static uint16_t compute_timer_compare(uint32_t*);
 
@@ -98,6 +100,8 @@ static volatile uint16_t compare3;
 
 static const nrf_drv_timer_t train_timer = NRF_DRV_TIMER_INSTANCE(2);
 static uint32_t train_timer_remaining;
+
+static app_timer_id_t timer;
 
 
 static uint16_t compute_timer_compare(uint32_t* value)
@@ -306,6 +310,10 @@ void stimulate_service_init(void)
 	stimulate_service_add_characteristic(&t_negative_pause_uuid, &t_negative_pause_handle, &t_negative_pause_value, sizeof(t_negative_pause_value));
 	stimulate_service_add_characteristic(&amplitude_uuid, &amplitude_handle, &amplitude_value, sizeof(amplitude_value));
 
+	// init stimulation timer
+	err_code = app_timer_create(&timer, APP_TIMER_MODE_SINGLE_SHOT, handle_timer_event);
+	APP_ERROR_CHECK(err_code);
+
 	// init GPIO task and events module
 	if(!nrf_drv_gpiote_is_init())
 	{
@@ -431,9 +439,15 @@ static void stimulate_on_gatts_write_stimulate(void)
 	// starting and stopping are not idempotent
 	// only call them on state transition
 	if(stimulate_value && !stimulate_prev)
+	{
 		stimulate_start();
+		APP_ERROR_CHECK(app_timer_start(timer, APP_TIMER_TICKS(t_total_value / 1000, 0), NULL));
+	}
 	else if(!stimulate_value && stimulate_prev)
+	{
 		stimulate_stop();
+		APP_ERROR_CHECK(app_timer_stop(timer));
+	}
 	stimulate_prev = stimulate_value;
 }
 
@@ -670,4 +684,10 @@ static void handle_train_timer_event(nrf_timer_event_t event_type, void* context
 		default:
 			break;
 	}
+}
+
+static void handle_timer_event(void* context)
+{
+	stimulate_stop();
+	stimulate_prev = stimulate_value = 0;
 }
