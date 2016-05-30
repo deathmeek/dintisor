@@ -25,13 +25,20 @@
 
 
 static void stimulate_on_gatts_write_stimulate(void);
+static void stimulate_on_gatts_write_train_params(void);
 static void stimulate_on_gatts_write_pulse_params(void);
 
-static void stimulate_compute_config(void);
-static void stimulate_update_config(uint8_t);
 static void stimulate_start(void);
 static void stimulate_stop(void);
+static void stimulate_compute_config(void);
+static void stimulate_update_config(uint8_t);
+static void stimulate_start_pulse(void);
+static void stimulate_stop_pulse(void (*)(void));
 static void stimulate_timer_event(nrf_timer_event_t, void*);
+static void stimulate_start_train_on(void);
+static void stimulate_start_train_off(void);
+static void stimulate_stop_train(void);
+static void handle_train_timer_event(nrf_timer_event_t, void*);
 
 static uint16_t compute_timer_compare(uint32_t*);
 
@@ -79,10 +86,18 @@ static uint16_t conn_handle = BLE_CONN_HANDLE_INVALID;
 // must update compute_timer_compare when changing timer configuration
 static const nrf_drv_timer_t stimulate_timer = NRF_DRV_TIMER_INSTANCE(1);
 static const nrf_drv_timer_config_t stimulate_timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG(1);
+static volatile enum pulse_timer_state_t {
+	TIMER_STOPPED = 0,
+	TIMER_RUNNING = 1,
+} pulse_timer_state, pulse_timer_desired_state;
+static void (* volatile pulse_timer_continuation)() = NULL;
 static volatile uint16_t compare0;
 static volatile uint16_t compare1;
 static volatile uint16_t compare2;
 static volatile uint16_t compare3;
+
+static const nrf_drv_timer_t train_timer = NRF_DRV_TIMER_INSTANCE(2);
+static uint32_t train_timer_remaining;
 
 
 static uint16_t compute_timer_compare(uint32_t* value)
@@ -107,6 +122,61 @@ static uint16_t compute_timer_compare(uint32_t* value)
 
 	*value = (*value / min_value) * min_value;
 	return *value / min_value;
+}
+
+static uint32_t compute_train_timer_on_count(uint32_t* value)
+{
+	const uint32_t period = t_positive_pause_value + t_positive_pulse_value + t_negative_pause_value + t_negative_pulse_value;
+
+	if(*value == 0)
+		return 0;
+
+	if(*value < period)
+	{
+		*value = period;
+		return 1;
+	}
+
+	*value = (*value / period) * period;
+	return *value / period;
+}
+
+static uint32_t compute_train_timer_off_count(uint32_t* value)
+{
+	const uint32_t period = 1000000 / (16000000 / (1 << 9));
+
+	if(*value == 0)
+		return 0;
+
+	if(*value < period)
+	{
+		*value = period;
+		return 1;
+	}
+
+	*value = (*value / period) * period;
+	return *value / period;
+}
+
+static uint16_t compute_train_timer_compare(uint32_t* remaining)
+{
+	if(*remaining == 0)
+		APP_ERROR_HANDLER(0xdead0001);
+
+	uint16_t ret;
+
+	if(*remaining < (1 << 16))
+	{
+		ret = *remaining;
+		*remaining = 0;
+	}
+	else
+	{
+		ret = 0;
+		*remaining -= (1 << 16);
+	}
+
+	return ret;
 }
 
 static void setup_pulse_pin(nrf_drv_gpiote_pin_t pin,
@@ -247,7 +317,7 @@ void stimulate_service_init(void)
 	err_code = nrf_drv_ppi_init();
 	APP_ERROR_CHECK(err_code);
 
-	// init timer module
+	// init pulse generation timer module
 	err_code = nrf_drv_timer_init(&stimulate_timer, &stimulate_timer_cfg, stimulate_timer_event);
 	APP_ERROR_CHECK(err_code);
 
@@ -263,6 +333,14 @@ void stimulate_service_init(void)
 	// configure H-bridge controls when under the control of GPIOTE
 	setup_pulse_pin((nrf_drv_gpiote_pin_t)positive_pin, NRF_TIMER_EVENT_COMPARE0, NRF_TIMER_EVENT_COMPARE1);
 	setup_pulse_pin((nrf_drv_gpiote_pin_t)negative_pin, NRF_TIMER_EVENT_COMPARE2, NRF_TIMER_EVENT_COMPARE3);
+
+	// configure channel used for pulse counting
+	nrf_ppi_channel_t pulse_count_channel;
+	uint32_t pulse_count_event_addr = nrf_drv_timer_event_address_get(&stimulate_timer, NRF_TIMER_EVENT_COMPARE3);
+	uint32_t pulse_count_task_addr = nrf_drv_timer_task_address_get(&train_timer, NRF_TIMER_TASK_COUNT);
+	APP_ERROR_CHECK(nrf_drv_ppi_channel_alloc(&pulse_count_channel));
+	APP_ERROR_CHECK(nrf_drv_ppi_channel_assign(pulse_count_channel, pulse_count_event_addr, pulse_count_task_addr));
+	APP_ERROR_CHECK(nrf_drv_ppi_channel_enable(pulse_count_channel));
 }
 
 void stimulate_on_gatts_write_event(ble_gatts_evt_write_t* event)
@@ -304,9 +382,13 @@ void stimulate_on_gatts_write_event(ble_gatts_evt_write_t* event)
 			break;
 
 		case 0x0001:
+			printf("stimulate (%hx): write value %lu\n", event->context.char_uuid.uuid, *((uint32_t*)event->data));
+			break;
+
 		case 0x0002:
 		case 0x0003:
 			printf("stimulate (%hx): write value %lu\n", event->context.char_uuid.uuid, *((uint32_t*)event->data));
+			stimulate_on_gatts_write_train_params();
 			break;
 
 		case 0x0004:
@@ -355,10 +437,15 @@ static void stimulate_on_gatts_write_stimulate(void)
 	stimulate_prev = stimulate_value;
 }
 
+static void stimulate_on_gatts_write_train_params(void)
+{
+	// params are updated automatically at the start of each pulse/pause phase
+}
+
 static void stimulate_on_gatts_write_pulse_params(void)
 {
 	stimulate_compute_config();
-	stimulate_update_config(stimulate_value);
+	stimulate_update_config(pulse_timer_state);
 }
 
 static void stimulate_compute_config(void)
@@ -376,63 +463,57 @@ static void stimulate_compute_config(void)
 	compare3 = compute_timer_compare(&t_negative_pulse_value) + compare2;
 }
 
-static void stimulate_update_config(uint8_t timer_running)
+static void stimulate_update_config(enum pulse_timer_state_t timer_state)
 {
-	if(timer_running)
+	switch(timer_state)
 	{
-		// protect against concurrent execution with timer event
-		CRITICAL_REGION_ENTER();
+		case TIMER_RUNNING:
+			// protect against concurrent execution with timer event
+			CRITICAL_REGION_ENTER();
 
-		// reconfiguration is delayed until the end of the pulse period
-		nrf_timer_shorts_enable(stimulate_timer.p_reg, NRF_TIMER_SHORT_COMPARE3_STOP_MASK);
-		nrf_drv_timer_compare_int_enable(&stimulate_timer, NRF_TIMER_CC_CHANNEL3);
+			// reconfiguration is delayed until the end of the pulse period
+			nrf_timer_shorts_enable(stimulate_timer.p_reg, NRF_TIMER_SHORT_COMPARE3_STOP_MASK);
+			nrf_drv_timer_compare_int_enable(&stimulate_timer, NRF_TIMER_CC_CHANNEL3);
 
-		CRITICAL_REGION_EXIT();
-	}
-	else
-	{
-		// update pulse configuration
-		nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL0, compare0, false);
-		nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL1, compare1, false);
-		nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL2, compare2, false);
-		nrf_drv_timer_extended_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL3, compare3, NRF_TIMER_SHORT_COMPARE3_CLEAR_MASK, false);
+			CRITICAL_REGION_EXIT();
+			break;
 
-		// pulse pin toggling doesn't work if duration is 0, replace with task disabling
-		if(compare0 != compare1)
-			nrf_drv_gpiote_out_task_enable((nrf_drv_gpiote_pin_t)positive_pin);
-		else
-			nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)positive_pin);
-		if(compare2 != compare3)
-			nrf_drv_gpiote_out_task_enable((nrf_drv_gpiote_pin_t)negative_pin);
-		else
-			nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)negative_pin);
+		case TIMER_STOPPED:
+			// update pulse configuration
+			nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL0, compare0, false);
+			nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL1, compare1, false);
+			nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL2, compare2, false);
+			nrf_drv_timer_extended_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL3, compare3, NRF_TIMER_SHORT_COMPARE3_CLEAR_MASK, false);
+
+			// pulse pin toggling doesn't work if duration is 0, replace with task disabling
+			if(compare0 != compare1)
+				nrf_drv_gpiote_out_task_enable((nrf_drv_gpiote_pin_t)positive_pin);
+			else
+				nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)positive_pin);
+			if(compare2 != compare3)
+				nrf_drv_gpiote_out_task_enable((nrf_drv_gpiote_pin_t)negative_pin);
+			else
+				nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)negative_pin);
+			break;
 	}
 }
 
 static void stimulate_start(void)
 {
-	// make sure H-bridge is disabled
-	nrf_drv_gpiote_out_clear((nrf_drv_gpiote_pin_t)positive_pin);
-	nrf_drv_gpiote_out_clear((nrf_drv_gpiote_pin_t)negative_pin);
-
 	// enable stimulation voltage source
 	NRF_GPIO->OUTSET = (1 << enable_pin);
 
-	stimulate_compute_config();
-	stimulate_update_config(false);
-	nrf_drv_timer_enable(&stimulate_timer);
+	stimulate_start_train_on();
 }
 
 static void stimulate_stop(void)
 {
-	nrf_drv_timer_disable(&stimulate_timer);
+	stimulate_stop_pulse(NULL);
+
+	stimulate_stop_train();
 
 	// disable stimulation voltage source
 	NRF_GPIO->OUTCLR = (1 << enable_pin);
-
-	// make sure H-bridge is disabled
-	nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)positive_pin);
-	nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)negative_pin);
 }
 
 static void stimulate_timer_event(nrf_timer_event_t event_type, void* p_context)
@@ -440,15 +521,150 @@ static void stimulate_timer_event(nrf_timer_event_t event_type, void* p_context)
 	switch(event_type)
 	{
 		case NRF_TIMER_EVENT_COMPARE3:
-			// protect against concurrent execution with reconfiguration request
-			CRITICAL_REGION_ENTER();
+			if(pulse_timer_desired_state == TIMER_RUNNING)
+			{
+				// protect against concurrent execution with reconfiguration request
+				CRITICAL_REGION_ENTER();
 
-			// timer is no longer running at this point
-			// update config and re-enable
-			stimulate_update_config(false);
-			nrf_drv_timer_enable(&stimulate_timer);
+				// timer is no longer running at this point
+				// update config and re-enable
+				stimulate_update_config(TIMER_STOPPED);
+				nrf_drv_timer_enable(&stimulate_timer);
 
-			CRITICAL_REGION_EXIT();
+				CRITICAL_REGION_EXIT();
+			}
+			else
+			{
+				// make sure H-bridge is disabled
+				nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)positive_pin);
+				nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)negative_pin);
+
+				pulse_timer_state = TIMER_STOPPED;
+
+				if(pulse_timer_continuation != NULL)
+					pulse_timer_continuation();
+			}
+			break;
+
+		default:
+			break;
+	}
+}
+
+static void stimulate_start_pulse(void)
+{
+	// make sure H-bridge is disabled
+	nrf_drv_gpiote_out_clear((nrf_drv_gpiote_pin_t)positive_pin);
+	nrf_drv_gpiote_out_clear((nrf_drv_gpiote_pin_t)negative_pin);
+
+	stimulate_compute_config();
+	stimulate_update_config(TIMER_STOPPED);
+
+	pulse_timer_state = pulse_timer_desired_state = TIMER_RUNNING;
+	nrf_drv_timer_enable(&stimulate_timer);
+}
+
+static void stimulate_stop_pulse(void (*continuation)(void))
+{
+	pulse_timer_desired_state = TIMER_STOPPED;
+
+	// protect against concurrent execution with timer event
+	CRITICAL_REGION_ENTER();
+
+	// set function to run after timer is stopped
+	pulse_timer_continuation = continuation;
+
+	// stopping is delayed until the end of the pulse period
+	nrf_timer_shorts_enable(stimulate_timer.p_reg, NRF_TIMER_SHORT_COMPARE3_STOP_MASK);
+	nrf_drv_timer_compare_int_enable(&stimulate_timer, NRF_TIMER_CC_CHANNEL3);
+
+	CRITICAL_REGION_EXIT();
+}
+
+static void stimulate_start_train_on(void)
+{
+	// clean-up previous timer mode
+	nrf_drv_timer_uninit(&train_timer);
+
+	// if no pulses are configured skip pulse phase
+	if(t_pulse_value == 0)
+	{
+		stimulate_start_train_off();
+		return;
+	}
+
+	// compute total remaining timer counts and next compare threshold
+	train_timer_remaining = compute_train_timer_on_count(&t_pulse_value);
+	uint16_t timer_next_compare = compute_train_timer_compare(&train_timer_remaining);
+
+	// set timer configuration for generating pulse train
+	nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG(2);
+	timer_cfg.mode = TIMER_MODE_MODE_Counter;
+	timer_cfg.p_context = stimulate_start_train_off;
+
+	// init, configure and start timer
+	APP_ERROR_CHECK(nrf_drv_timer_init(&train_timer, &timer_cfg, handle_train_timer_event));
+	nrf_drv_timer_extended_compare(&train_timer,
+			NRF_TIMER_CC_CHANNEL0, timer_next_compare,
+			NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK | NRF_TIMER_SHORT_COMPARE0_STOP_MASK, true);
+	nrf_drv_timer_enable(&train_timer);
+
+	stimulate_start_pulse();
+}
+
+static void stimulate_start_train_off(void)
+{
+	// clean-up previous timer mode
+	nrf_drv_timer_uninit(&train_timer);
+
+	// if no pause is configured force minimum possible
+	if(t_pause_value == 0)
+		t_pause_value = 1;
+
+	// compute total remaining timer counts and next compare threshold
+	train_timer_remaining = compute_train_timer_off_count(&t_pause_value);
+	uint16_t timer_next_compare = compute_train_timer_compare(&train_timer_remaining);
+
+	// set timer configuration for generating pause period
+	nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG(2);
+	timer_cfg.mode = TIMER_MODE_MODE_Timer;
+	timer_cfg.p_context = stimulate_start_train_on;
+
+	// init, configure and start timer
+	APP_ERROR_CHECK(nrf_drv_timer_init(&train_timer, &timer_cfg, handle_train_timer_event));
+	nrf_drv_timer_extended_compare(&train_timer,
+			NRF_TIMER_CC_CHANNEL0, timer_next_compare,
+			NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK | NRF_TIMER_SHORT_COMPARE0_STOP_MASK, true);
+	nrf_drv_timer_enable(&train_timer);
+}
+
+static void stimulate_stop_train(void)
+{
+	nrf_drv_timer_disable(&train_timer);
+}
+
+static void handle_train_timer_event(nrf_timer_event_t event_type, void* context)
+{
+	switch(event_type)
+	{
+		case NRF_TIMER_EVENT_COMPARE0:
+			if(train_timer_remaining)
+			{
+				uint16_t timer_next_compare = compute_train_timer_compare(&train_timer_remaining);
+
+				nrf_drv_timer_compare(&train_timer, NRF_TIMER_CC_CHANNEL0, timer_next_compare, true);
+
+				nrf_drv_timer_enable(&train_timer);
+			}
+			else
+			{
+				void (*start_next_timer)() = context;
+
+				if(start_next_timer == stimulate_start_train_off)
+					stimulate_stop_pulse(start_next_timer);
+				else
+					start_next_timer();
+			}
 			break;
 
 		default:
