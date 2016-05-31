@@ -466,15 +466,15 @@ static void stimulate_on_gatts_write_pulse_params(void)
 static void stimulate_compute_config(void)
 {
 	// positive pulse
-	compare0 = compute_timer_compare(&t_positive_pause_value) + 0;
 	if(t_positive_pause_value == 0 && t_positive_pulse_value != 0)	// no pulse without pause
-		compare0++;
+		t_positive_pause_value++;
+	compare0 = compute_timer_compare(&t_positive_pause_value) + 0;
 	compare1 = compute_timer_compare(&t_positive_pulse_value) + compare0;
 
 	// negative pulse
-	compare2 = compute_timer_compare(&t_negative_pause_value) + compare1;
 	if(t_negative_pause_value == 0 && t_negative_pulse_value != 0)	// no pulse without pause
-		compare2++;
+		t_negative_pause_value++;
+	compare2 = compute_timer_compare(&t_negative_pause_value) + compare1;
 	compare3 = compute_timer_compare(&t_negative_pulse_value) + compare2;
 }
 
