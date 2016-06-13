@@ -1,14 +1,21 @@
 package upb.com.smarttooth.Renderers;
 
-import android.util.Log;
+import android.bluetooth.BluetoothA2dp;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCharacteristic;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import com.github.aakira.expandablelayout.ExpandableRelativeLayout;
 
+import java.util.zip.Adler32;
+
 import adrian.upb.smarttooth.R;
 import upb.com.smarttooth.Config;
+import upb.com.smarttooth.MainActivity;
 import upb.com.smarttooth.Tooth;
 
 public class ToothSettings implements Renderer {
@@ -19,7 +26,14 @@ public class ToothSettings implements Renderer {
     EditText T2;
     EditText T3;
     EditText T4;
+    TextView f;
+    public static TextView status;
     private View rootView;
+    private static ToothSettings instance;
+
+    public static ToothSettings getInstance() {
+        return instance;
+    }
 
     private void updateT14(EditText e){
         int val = 0;
@@ -29,8 +43,12 @@ public class ToothSettings implements Renderer {
             e.setText("");
         else
             e.setText(val + "");
-        Tooth.getInstance().setCharact(e, val);
+        Tooth.getInstance().enqueueWrite(remapView(e), val);
         updateTA();
+    }
+
+    private int remapView(View e) {
+        return e.getId();
     }
 
     private void updateTA(){
@@ -43,6 +61,7 @@ public class ToothSettings implements Renderer {
         try { v3 = Integer.parseInt(T3.getText().toString()); } catch (Exception ex) {}
         try { v4 = Integer.parseInt(T4.getText().toString()); } catch (Exception ex) {}
         sum = v1 + v2 + v3 + v4;
+
         if(sum == 0) {
             return;
         }
@@ -51,7 +70,10 @@ public class ToothSettings implements Renderer {
             Ta.setText("");
         else
             Ta.setText(val + "");
-        Tooth.getInstance().setCharact(Ta, val);
+        // 1000 ms / sum(ms)
+        float fVal = 1000.0f/val;
+        f.setText(fVal + "");
+        Tooth.getInstance().enqueueWrite(remapView(Ta), val);
         updateTT();
     }
     private void updateTP(){
@@ -62,9 +84,8 @@ public class ToothSettings implements Renderer {
             Tp.setText("");
         else
             Tp.setText(val + "");
-        Tooth.getInstance().setCharact(Tp, val);
+        Tooth.getInstance().enqueueWrite(remapView(Tp), val);
         updateTT();
-
     }
     private void updateTT() {
         int sum;
@@ -79,15 +100,26 @@ public class ToothSettings implements Renderer {
             return;
         }
         val = val < sum ? sum : sum * (val / sum);
-        if(val == 0)
+        if(val == 0) {
             Tt.setText("");
-        else
+        } else {
             Tt.setText(val + "");
-        Tooth.getInstance().setCharact(Tt, val);
+        }
+        Tooth.getInstance().enqueueWrite(remapView(Tt), val);
     }
 
     @Override
     public void render(View rootView) {
+        this.instance = this;
+        final boolean[] start = {false};
+        final Button b = (Button)rootView.findViewById(R.id.button_start);
+        b.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                start[0] = !start[0];
+                Tooth.getInstance().enqueueWrite(remapView(b), start[0] ? 1 : 0);
+            }
+        });
         this.rootView = rootView;
         Ta = (EditText) rootView.findViewById(R.id.numberPickerTA);
         Tp = (EditText) rootView.findViewById(R.id.numberPickerTP);
@@ -96,6 +128,8 @@ public class ToothSettings implements Renderer {
         T2 = (EditText) rootView.findViewById(R.id.numberPickerT2);
         T3 = (EditText) rootView.findViewById(R.id.numberPickerT3);
         T4 = (EditText) rootView.findViewById(R.id.numberPickerT4);
+        f = (TextView) rootView.findViewById(R.id.textView_f);
+        status = ( TextView) rootView.findViewById(R.id.textView_status);
         View.OnFocusChangeListener l14 = new  View.OnFocusChangeListener(){
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
@@ -120,7 +154,7 @@ public class ToothSettings implements Renderer {
         Tp.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
-                if(hasFocus)
+                if (hasFocus)
                     return;
                 updateTP();
             }
@@ -137,13 +171,33 @@ public class ToothSettings implements Renderer {
     }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-
-        final int[] expandableLayoutsID = new int[]{R.id.expandableLayout_T2, R.id.expandableLayout_T4};
-        final ExpandableRelativeLayout[] expandableLayouts = new ExpandableRelativeLayout[expandableLayoutsID.length];
-        for(int i = 0; i < expandableLayoutsID.length; i++) {
-            expandableLayouts[i] = (ExpandableRelativeLayout) rootView.findViewById(expandableLayoutsID[i]);
-            expandableLayouts[i].toggle();
+        if (item.getItemId() == R.id.menu_adv){
+            final int[] expandableLayoutsID = new int[]{R.id.expandableLayout_T2, R.id.expandableLayout_T4};
+            final ExpandableRelativeLayout[] expandableLayouts = new ExpandableRelativeLayout[expandableLayoutsID.length];
+            for (int i = 0; i < expandableLayoutsID.length; i++) {
+                expandableLayouts[i] = (ExpandableRelativeLayout) rootView.findViewById(expandableLayoutsID[i]);
+                expandableLayouts[i].toggle();
+            }
+        }
+        else
+        {
+            Tooth.getInstance().resetBluetooth();
         }
         return true;
+    }
+
+    public void update(final int id, final int value) {
+        MainActivity.instance.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if(id == R.id.button_start){
+                    //TODO set button
+                } else {
+                    EditText e = (EditText) rootView.findViewById(id);
+                    e.setText(value + "");
+                }
+            }
+        });
+
     }
 }

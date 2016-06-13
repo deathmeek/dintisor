@@ -2,6 +2,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="upb.com.smarttooth.MainActivity">
     <item
+        android:id="@+id/menu_adv"
+
+    android:showAsAction="withText|ifRoom"
+    android:title="Advanced" />
+    <item
+        android:id="@+id/menu_reset"
         android:showAsAction="withText|ifRoom"
-        android:title="Advanced" />
+        android:title="Reset BT" />
 </menu>

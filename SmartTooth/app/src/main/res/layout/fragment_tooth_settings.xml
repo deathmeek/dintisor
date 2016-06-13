@@ -210,12 +210,12 @@
                         android:layout_height="wrap_content"
                         android:text="f"
                         android:textAppearance="?android:attr/textAppearanceLarge"/>
-                    <EditText
+                    <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:inputType="number"
                         android:ems="4"
-                        android:id="@+id/editText_f" />
+                        android:id="@+id/textView_f" />
 
                 </LinearLayout>
             </LinearLayout>
@@ -225,7 +225,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Start"
-        android:id="@+id/button"
+        android:id="@+id/button_start"
         android:layout_alignParentBottom="true"
         android:layout_alignParentEnd="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/textView_status"
+        android:layout_alignTop="@+id/button_start"
+        android:layout_centerHorizontal="true" />
 </RelativeLayout>
