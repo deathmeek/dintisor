@@ -169,12 +169,12 @@ void ADC_IRQHandler(void)
 
 		case 1:
 			sense_measurement_finish();
-			stimulate_measurement_start();
+			stimulate_measure_start();
 			state = 2;
 			break;
 
 		case 2:
-			stimulate_measurement_finish();
+			stimulate_measure_finish();
 			state = 0;
 			break;
 	}
@@ -426,7 +426,7 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
 {
     battery_service_process_event(p_ble_evt);
     sense_on_ble_event(p_ble_evt);
-    stimulate_on_ble_event(p_ble_evt);
+    stimulate_service_on_ble_event(p_ble_evt);
     ble_conn_params_on_ble_evt(p_ble_evt);
     dm_ble_evt_handler(p_ble_evt);
     bsp_btn_ble_on_ble_evt(p_ble_evt);
