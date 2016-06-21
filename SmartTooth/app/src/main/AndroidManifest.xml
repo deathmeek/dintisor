@@ -17,6 +17,11 @@
             android:name="upb.com.smarttooth.MainActivity"
             android:label="SmartTooth"
             android:screenOrientation="portrait">
+        </activity>
+        <activity
+            android:name="upb.com.smarttooth.LookupActivity"
+            android:label="Lookup"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

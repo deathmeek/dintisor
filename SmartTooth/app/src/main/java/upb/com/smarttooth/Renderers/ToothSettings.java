@@ -203,7 +203,7 @@ public class ToothSettings implements Renderer {
     }
 
     public void update(final int id, final int value) {
-        MainActivity.instance.runOnUiThread(new Runnable() {
+        Tooth.getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 if(id == R.id.button_start){

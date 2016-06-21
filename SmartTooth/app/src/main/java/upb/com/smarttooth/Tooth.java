@@ -28,6 +28,15 @@ import upb.com.smarttooth.Renderers.ToothSettings;
 
 public class Tooth{
     private final ToothWatchDog watchdog;
+    private static Activity activity;
+
+    public static Activity getActivity() {
+        return activity;
+    }
+
+    public static void setActivity(Activity a){
+        activity = a;
+    }
 
     public class CharacWrapper{
         boolean write;
@@ -91,7 +100,6 @@ public class Tooth{
 
     private static Tooth instance;
     public final DataFrame dataFrame;
-    Activity activity;
     BluetoothDevice foundDevice = null;
     BluetoothAdapter.LeScanCallback cb = new BluetoothAdapter.LeScanCallback() {
         @Override
@@ -111,16 +119,16 @@ public class Tooth{
 
             foundDevice = device;
 
-            activity.runOnUiThread(new Runnable() {
+            getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Toast.makeText(activity, "Got a device " + device.getAddress(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(getActivity(), "Got a device " + device.getAddress(), Toast.LENGTH_LONG).show();
                 }
             });
 
             bluetoothAdapter.stopLeScan(this);
 
-            bluetoothGatt = device.connectGatt(activity, false, btleGattCallback);
+            bluetoothGatt = device.connectGatt(getActivity(), false, btleGattCallback);
         }
     };
 
@@ -136,10 +144,9 @@ public class Tooth{
         bluetoothAdapter.startLeScan(cb);
     }
 
-    public Tooth(final Activity activity) {
+    private Tooth(final Activity activity) {
         instance = this;
         this.watchdog = new ToothWatchDog(5000);
-        this.activity = activity;
         dataFrame = new DataFrame(new String[]{"PH", "Humidity"}, null, true);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {
@@ -234,7 +241,7 @@ public class Tooth{
             Tooth.online = newState == BluetoothProfile.STATE_CONNECTED;
             if (Tooth.online) {
                 gatt.discoverServices();
-                activity.runOnUiThread(new Runnable() {
+                getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         try {
@@ -246,7 +253,7 @@ public class Tooth{
                 });
 
             } else {
-                activity.runOnUiThread(new Runnable() {
+                getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         try {

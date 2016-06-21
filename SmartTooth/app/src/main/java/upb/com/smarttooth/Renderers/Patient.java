@@ -51,7 +51,7 @@ public class Patient implements Renderer {
                                     } catch (InterruptedException e) {
                                         e.printStackTrace();
                                     }
-                                    MainActivity.instance.runOnUiThread(new Runnable() {
+                                    Tooth.getActivity().runOnUiThread(new Runnable() {
                                         @Override
                                         public void run() {
                                             Tooth.getInstance().dataFrame.graph.repaint();
