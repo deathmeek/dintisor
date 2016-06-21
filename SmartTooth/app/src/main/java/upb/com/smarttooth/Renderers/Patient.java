@@ -1,7 +1,10 @@
 package upb.com.smarttooth.Renderers;
 
+import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -16,7 +19,9 @@ import upb.com.smarttooth.Tooth;
 
 public class Patient implements Renderer {
     @Override
-    public void render(final View rootView) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState){
+        final View rootView = inflater.inflate(R.layout.fragment_pacient, container, false);
         final int[] titles = new int[]{R.id.textView_pacientName, R.id.textView_device, R.id.textView_realTimeData, R.id.textView_pastData};
         final int[] expandableLayoutsID = new int[]{R.id.expandableLayout_pacient, R.id.expandableLayout_device, R.id.expandableLayout_rtData, R.id.expandableLayout_pastData};
         final ExpandableRelativeLayout[] expandableLayouts = new ExpandableRelativeLayout[expandableLayoutsID.length];
@@ -72,10 +77,22 @@ public class Patient implements Renderer {
                 }
             });
         }
+        return rootView;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         return true;
     }
+    @Override
+    public String getTitle() {
+        switch (Config.LANGUAGE){
+            case ROMANIAN:
+                return "Pacient";
+            case ENGLISH:
+                return "Patient";
+        }
+        return null;
+    }
+
 }

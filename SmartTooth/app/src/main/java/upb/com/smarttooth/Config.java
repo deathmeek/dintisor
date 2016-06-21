@@ -9,6 +9,8 @@ public class Config {
     public static final HashSet<String> TOOTH_MACs = new HashSet<String>();
     public static final int MIN_PULSE_TIME = 32;
     public static final int MIN_PAUSE_TIME = 30;
+    public enum Languages {ROMANIAN, ENGLISH};
+    public static final Languages LANGUAGE = Languages.ROMANIAN;
 
     static {
         TOOTH_MACs.add("CA:79:B5:CE:FF:2E");

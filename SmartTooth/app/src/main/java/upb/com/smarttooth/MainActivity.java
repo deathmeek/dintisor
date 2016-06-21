@@ -31,13 +31,18 @@ public class MainActivity extends Activity
     /**
      * Used to store the last screen title. For use in {@link #restoreActionBar()}.
      */
+    static {
+        Renderer[] aux = renderers = new Renderer[]{new ToothSettings(), new Patient()};
+        String[] p = new String [aux.length];
+        for(int i = 0; i < aux.length; i++){
+            p[i] = aux[i].getTitle();
+        }
+        pagini = p;
+    }
+    public static final String[] pagini;
     private CharSequence mTitle;
-    public static String[] pagini = new String []{"Setări waveform", "Pacient", "Selecție pacient",
-        "Access la date", "Opțiuni"};
-    public static int[] views = new int[]{R.layout.fragment_tooth_settings,R.layout.fragment_pacient,
-            R.layout.fragment_select_pacient,R.layout.fragment_data_access, R.layout.fragment_options};
     public static int[] menus = new int[]{R.menu.tooth_settings,0,0,0,0};
-    public static Renderer[] renderers = new Renderer[]{new ToothSettings(), new Patient()};
+    public static final Renderer[] renderers;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,8 +70,8 @@ public class MainActivity extends Activity
                 .commit();
     }
 
-    public void onSectionAttached(int number) {
-        mTitle = pagini[number];
+    public void onSectionAttached(int i) {
+        mTitle = renderers[i].getTitle();
     }
 
     public void restoreActionBar() {
@@ -104,11 +109,8 @@ public class MainActivity extends Activity
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
-            int sn =  getArguments().getInt(ARG_SECTION_NUMBER);
-            final View rootView = inflater.inflate(views[sn], container, false);
-            if(sn < renderers.length){
-                renderers[sn].render(rootView);
-            }
+            int sn = getArguments().getInt(ARG_SECTION_NUMBER);
+            View rootView = renderers[sn].onCreateView(inflater, container, savedInstanceState);
             setHasOptionsMenu(true);
             return rootView;
         }

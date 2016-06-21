@@ -3,8 +3,11 @@ package upb.com.smarttooth.Renderers;
 import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -33,6 +36,17 @@ public class ToothSettings implements Renderer {
 
     public static ToothSettings getInstance() {
         return instance;
+    }
+
+    @Override
+    public String getTitle() {
+        switch (Config.LANGUAGE){
+            case ROMANIAN:
+                return "Setări Waveform";
+            case ENGLISH:
+                return "Waveform Settings";
+        }
+        return null;
     }
 
     private void updateT14(EditText e){
@@ -109,8 +123,10 @@ public class ToothSettings implements Renderer {
     }
 
     @Override
-    public void render(View rootView) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                      Bundle savedInstanceState){
         this.instance = this;
+        rootView = inflater.inflate(R.layout.fragment_tooth_settings, container, false);
         final boolean[] start = {false};
         final Button b = (Button)rootView.findViewById(R.id.button_start);
         b.setOnClickListener(new View.OnClickListener() {
@@ -120,7 +136,6 @@ public class ToothSettings implements Renderer {
                 Tooth.getInstance().enqueueWrite(remapView(b), start[0] ? 1 : 0);
             }
         });
-        this.rootView = rootView;
         Ta = (EditText) rootView.findViewById(R.id.numberPickerTA);
         Tp = (EditText) rootView.findViewById(R.id.numberPickerTP);
         Tt = (EditText) rootView.findViewById(R.id.numberPickerTT);
@@ -168,6 +183,7 @@ public class ToothSettings implements Renderer {
                 updateTT();
             }
         });
+        return rootView;
     }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
