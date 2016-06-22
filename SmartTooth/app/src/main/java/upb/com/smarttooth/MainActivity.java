@@ -28,7 +28,7 @@ public class MainActivity extends Activity
         Tooth.setActivity(this);
     }
 
-    public static final Tooth tooth = Tooth.getInstance();
+    public static Tooth tooth;
     /**
      * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
      */
@@ -53,6 +53,9 @@ public class MainActivity extends Activity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Tooth.setActivity(this);
+        tooth = Tooth.getInstance();
+        getActionBar().setDisplayHomeAsUpEnabled(true);
         setContentView(R.layout.activity_main);
         mNavigationDrawerFragment = (NavigationDrawerFragment)
                 getFragmentManager().findFragmentById(R.id.navigation_drawer);

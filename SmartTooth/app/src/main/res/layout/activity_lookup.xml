@@ -21,55 +21,46 @@
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@+id/button"
+        android:layout_below="@+id/button_beginScanning"
         android:layout_centerHorizontal="true">
 
-        <ScrollView
+        <LinearLayout
+            android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:id="@+id/scrollView" >
-            <LinearLayout
-                android:orientation="vertical"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Patients"
+                android:id="@+id/textView" />
+
+            <ListView
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:id="@+id/listView" />
+        </LinearLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Patients"
-                    android:id="@+id/textView" />
 
-                <ListView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:id="@+id/listView" />
-            </LinearLayout>
-        </ScrollView>
-
-        <ScrollView
+        <LinearLayout
+            android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:id="@+id/scrollView2" >
+            android:layout_height="match_parent" >
 
-            <LinearLayout
-                android:orientation="vertical"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Local Devices"
+                android:id="@+id/textView2" />
+
+            <ListView
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" >
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Current Devices"
-                    android:id="@+id/textView2" />
-
-                <ListView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:id="@+id/listView2" />
-            </LinearLayout>
-        </ScrollView>
+                android:layout_height="match_parent"
+                android:id="@+id/listView2" />
+        </LinearLayout>
 
     </LinearLayout>
 

@@ -16,6 +16,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -36,6 +37,19 @@ public class Tooth{
 
     public static void setActivity(Activity a){
         activity = a;
+    }
+
+    public void startScan() {
+        try {
+            bluetoothAdapter.stopLeScan(cbScan);
+        } catch (Exception e) {
+
+        }
+        bluetoothAdapter.startLeScan(cbScan);
+    }
+
+    public void stopScan() {
+        bluetoothAdapter.stopLeScan(cbScan);
     }
 
     public class CharacWrapper{
@@ -67,19 +81,20 @@ public class Tooth{
     private static Tooth instance;
     public final DataFrame dataFrame;
     BluetoothDevice foundDevice = null;
-    BluetoothAdapter.LeScanCallback cb = new BluetoothAdapter.LeScanCallback() {
+    String TargetMAC = null;
+    BluetoothAdapter.LeScanCallback cbLocate = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
-            Log.d("BluetoothScan", "device found - " + device.getAddress() + ", "
-                    + device.getName() + ", " + device.getUuids());
+            Log.d("BluetoothLocate", "device found - " + device.getAddress() + ", "
+                    + device.getName() + ", " + Arrays.toString(device.getUuids()));
 
             if (foundDevice != null) {
-                Log.d("BluetoothScan", "device already found");
+                Log.d("BluetoothLocate", "device already found");
                 return;
             }
 
-            if (!Config.TOOTH_MACs.contains(device.getAddress())) {
-                Log.d("BluetoothScan", "device not in list - " + Config.TOOTH_MACs.toString());
+            if (!TargetMAC.contains(device.getAddress())) {
+                Log.d("BluetoothLocate", "device not in list - " + Config.TOOTH_MACs.toString());
                 return;
             }
 
@@ -89,12 +104,29 @@ public class Tooth{
                 @Override
                 public void run() {
                     Toast.makeText(getActivity(), "Got a device " + device.getAddress(), Toast.LENGTH_LONG).show();
+                    if(getActivity() instanceof LookupActivity){
+                        Intent intent = new Intent(getActivity(), MainActivity.class);
+                        getActivity().startActivity(intent);
+                    }
                 }
             });
 
             bluetoothAdapter.stopLeScan(this);
 
             bluetoothGatt = device.connectGatt(getActivity(), false, btleGattCallback);
+        }
+    };
+    BluetoothAdapter.LeScanCallback cbScan = new BluetoothAdapter.LeScanCallback() {
+        @Override
+        public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
+            Log.d("BluetoothScan", "device found - " + device.getAddress() + ", "
+                    + device.getName() + ", " + Arrays.toString(device.getUuids()));
+
+            if(Config.TOOTH_MACs.contains(device.getAddress())){
+                //TODO if the UUIDS are what we expect
+                LookupActivity a = (LookupActivity) getActivity();
+                a.addDevice(device.getName(), device.getAddress());
+            }
         }
     };
 
@@ -107,10 +139,10 @@ public class Tooth{
         }
         Log.i("Smartooth", "Scanning started");
         foundDevice = null;
-        bluetoothAdapter.startLeScan(cb);
+        bluetoothAdapter.startLeScan(cbLocate);
     }
 
-    private Tooth(final Activity activity) {
+    private Tooth() {
         instance = this;
         this.watchdog = new ToothWatchDog(5000);
         dataFrame = new DataFrame(new String[]{"PH", "Humidity"}, null, true);
@@ -151,6 +183,9 @@ public class Tooth{
     }
 
     public static Tooth getInstance() {
+        if(instance == null){
+            instance = new Tooth();
+        }
         return instance;
     }
 

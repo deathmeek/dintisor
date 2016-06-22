@@ -16,16 +16,25 @@
         <activity
             android:name="upb.com.smarttooth.MainActivity"
             android:label="SmartTooth"
-            android:screenOrientation="portrait">
-        </activity>
+            android:parentActivityName="upb.com.smarttooth.LookupActivity"
+            android:screenOrientation="portrait"/>
         <activity
             android:name="upb.com.smarttooth.LookupActivity"
-            android:label="Lookup"
+            android:label="SmartTooth"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name="upb.com.smarttooth.NewPacient"
+            android:label="@string/title_activity_new_pacient"
+            android:parentActivityName="upb.com.smarttooth.LookupActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="upb.com.smarttooth.LookupActivity" />
         </activity>
     </application>
 
