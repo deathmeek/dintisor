@@ -6,13 +6,13 @@ import android.app.Fragment;
 import android.app.FragmentManager;
 import android.os.Bundle;
 import android.support.v4.widget.DrawerLayout;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 
 import adrian.upb.smarttooth.R;
 import upb.com.smarttooth.Renderers.Patient;
@@ -22,7 +22,13 @@ import upb.com.smarttooth.Renderers.ToothSettings;
 public class MainActivity extends Activity
         implements NavigationDrawerFragment.NavigationDrawerCallbacks {
 
-    public static Activity instance;
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Tooth.setActivity(this);
+    }
+
+    public static Tooth tooth;
     /**
      * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
      */
@@ -31,19 +37,26 @@ public class MainActivity extends Activity
     /**
      * Used to store the last screen title. For use in {@link #restoreActionBar()}.
      */
+    static {
+        Renderer[] aux = renderers = new Renderer[]{new ToothSettings(), new Patient()};
+        String[] p = new String [aux.length];
+        for(int i = 0; i < aux.length; i++){
+            p[i] = aux[i].getTitle();
+        }
+        pagini = p;
+    }
+    public static final String[] pagini;
     private CharSequence mTitle;
-    public static String[] pagini = new String []{"Setări waveform", "Pacient", "Selecție pacient",
-        "Access la date", "Opțiuni"};
-    public static int[] views = new int[]{R.layout.fragment_tooth_settings,R.layout.fragment_pacient,
-            R.layout.fragment_select_pacient,R.layout.fragment_data_access, R.layout.fragment_options};
     public static int[] menus = new int[]{R.menu.tooth_settings,0,0,0,0};
-    public static Renderer[] renderers = new Renderer[]{new ToothSettings(), new Patient()};
+    public static final Renderer[] renderers;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Tooth.setActivity(this);
+        tooth = Tooth.getInstance();
+        getActionBar().setDisplayHomeAsUpEnabled(true);
         setContentView(R.layout.activity_main);
-        this.instance = this;
         mNavigationDrawerFragment = (NavigationDrawerFragment)
                 getFragmentManager().findFragmentById(R.id.navigation_drawer);
         mTitle = getTitle();
@@ -52,7 +65,7 @@ public class MainActivity extends Activity
         mNavigationDrawerFragment.setUp(
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
-        new Tooth(this);
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
     }
 
     @Override
@@ -64,8 +77,8 @@ public class MainActivity extends Activity
                 .commit();
     }
 
-    public void onSectionAttached(int number) {
-        mTitle = pagini[number];
+    public void onSectionAttached(int i) {
+        mTitle = renderers[i].getTitle();
     }
 
     public void restoreActionBar() {
@@ -103,11 +116,8 @@ public class MainActivity extends Activity
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
-            int sn =  getArguments().getInt(ARG_SECTION_NUMBER);
-            final View rootView = inflater.inflate(views[sn], container, false);
-            if(sn < renderers.length){
-                renderers[sn].render(rootView);
-            }
+            int sn = getArguments().getInt(ARG_SECTION_NUMBER);
+            View rootView = renderers[sn].onCreateView(inflater, container, savedInstanceState);
             setHasOptionsMenu(true);
             return rootView;
         }
@@ -125,16 +135,11 @@ public class MainActivity extends Activity
             if(menus[sn] != 0) {
                 inflater.inflate(menus[sn], menu);
             }
-             Log.e("test", "meniul se apeleaza");
         }
         @Override
         public boolean onOptionsItemSelected (MenuItem item){
             int sn =  getArguments().getInt(ARG_SECTION_NUMBER);
-            if(menus[sn] != 0) {
-                renderers[sn].onOptionsItemSelected(item);
-            }
-            Log.e("test", "meniul se apeleaza");
-            return true;
+            return renderers[sn].onOptionsItemSelected(item);
         }
     }
 
