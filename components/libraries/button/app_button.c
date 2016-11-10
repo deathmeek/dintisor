@@ -9,20 +9,20 @@
  * the file.
  *
  */
-
+#include "sdk_config.h"
+#if BUTTON_ENABLED
 #include "app_button.h"
-#include <string.h>
-#include "nordic_common.h"
-#include "app_util.h"
 #include "app_timer.h"
 #include "app_error.h"
 #include "nrf_drv_gpiote.h"
 #include "nrf_assert.h"
+#include "sdk_common.h"
 
-static app_button_cfg_t *             mp_buttons = NULL;           /**< Button configuration. */
+
+static app_button_cfg_t const *       mp_buttons = NULL;           /**< Button configuration. */
 static uint8_t                        m_button_count;              /**< Number of configured buttons. */
 static uint32_t                       m_detection_delay;           /**< Delay before a button is reported as pushed. */
-static app_timer_id_t                 m_detection_delay_timer_id;  /**< Polling timer id. */
+APP_TIMER_DEF(m_detection_delay_timer_id);  /**< Polling timer id. */
 
 
 static uint32_t m_pin_state;
@@ -43,11 +43,11 @@ static uint32_t m_pin_transition;
 static void detection_delay_timeout_handler(void * p_context)
 {
     uint8_t i;
-    
+
     // Pushed button(s) detected, execute button handler(s).
     for (i = 0; i < m_button_count; i++)
     {
-        app_button_cfg_t * p_btn = &mp_buttons[i];
+        app_button_cfg_t const * p_btn = &mp_buttons[i];
         uint32_t btn_mask = 1 << p_btn->pin_no;
         if (btn_mask & m_pin_transition)
         {
@@ -108,12 +108,12 @@ static void gpiote_event_handler(nrf_drv_gpiote_pin_t pin, nrf_gpiote_polarity_t
     }
 }
 
-uint32_t app_button_init(app_button_cfg_t *             p_buttons,
+uint32_t app_button_init(app_button_cfg_t const *       p_buttons,
                          uint8_t                        button_count,
                          uint32_t                       detection_delay)
 {
     uint32_t err_code;
-    
+
     if (detection_delay < APP_TIMER_MIN_TIMEOUT_TICKS)
     {
         return NRF_ERROR_INVALID_PARAM;
@@ -122,10 +122,7 @@ uint32_t app_button_init(app_button_cfg_t *             p_buttons,
     if (!nrf_drv_gpiote_is_init())
     {
         err_code = nrf_drv_gpiote_init();
-        if (err_code != NRF_SUCCESS)
-        {
-            return err_code;
-        }
+        VERIFY_SUCCESS(err_code);
     }
 
     // Save configuration.
@@ -135,19 +132,16 @@ uint32_t app_button_init(app_button_cfg_t *             p_buttons,
 
     m_pin_state      = 0;
     m_pin_transition = 0;
-    
+
     while (button_count--)
     {
-        app_button_cfg_t * p_btn = &p_buttons[button_count];
+        app_button_cfg_t const * p_btn = &p_buttons[button_count];
 
         nrf_drv_gpiote_in_config_t config = GPIOTE_CONFIG_IN_SENSE_TOGGLE(false);
         config.pull = p_btn->pull_cfg;
-        
+
         err_code = nrf_drv_gpiote_in_init(p_btn->pin_no, &config, gpiote_event_handler);
-        if (err_code != NRF_SUCCESS)
-        {
-            return err_code;
-        }
+        VERIFY_SUCCESS(err_code);
     }
 
     // Create polling timer.
@@ -190,10 +184,11 @@ uint32_t app_button_is_pushed(uint8_t button_id, bool * p_is_pushed)
     ASSERT(button_id <= m_button_count);
     ASSERT(mp_buttons != NULL);
 
-    app_button_cfg_t * p_btn = &mp_buttons[button_id];
+    app_button_cfg_t const * p_btn = &mp_buttons[button_id];
     bool is_set = nrf_drv_gpiote_in_is_set(p_btn->pin_no);
 
     *p_is_pushed = !(is_set^(p_btn->active_state == APP_BUTTON_ACTIVE_HIGH));
-    
+
     return NRF_SUCCESS;
 }
+#endif //BUTTON_ENABLED

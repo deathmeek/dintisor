@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Nordic Semiconductor ASA
+/* Copyright (c) 2016, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,15 +27,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-
+ 
 #ifndef NRF_H
 #define NRF_H
 
-#if defined(_WIN32)         
+/* MDK version */
+#define MDK_MAJOR_VERSION   8
+#define MDK_MINOR_VERSION   9
+#define MDK_MICRO_VERSION   0
+
+#if defined(_WIN32)
     /* Do not include nrf51 specific files when building for PC host */
-#elif defined(__unix)       
+#elif defined(__unix)
     /* Do not include nrf51 specific files when building for PC host */
-#elif defined(__APPLE__)    
+#elif defined(__APPLE__)
     /* Do not include nrf51 specific files when building for PC host */
 #else
 
@@ -48,6 +53,7 @@
         #include "nrf52.h"
         #include "nrf52_bitfields.h"
         #include "nrf51_to_nrf52.h"
+        #include "nrf52_name_change.h"
     #else
         #error "Device family must be defined. See nrf.h."
     #endif /* NRF51, NRF52 */

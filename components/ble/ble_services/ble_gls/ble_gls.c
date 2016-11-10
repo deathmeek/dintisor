@@ -9,11 +9,12 @@
  * the file.
  */
 
-/* Attention! 
-*  To maintain compliance with Nordic Semiconductor ASA’s Bluetooth profile 
+/* Attention!
+*  To maintain compliance with Nordic Semiconductor ASA’s Bluetooth profile
 *  qualification listings, this section of source code must not be modified.
 */
-
+#include "sdk_config.h"
+#if BLE_GLS_ENABLED
 #include "ble_gls.h"
 #include <string.h>
 #include "ble_srv_common.h"
@@ -219,7 +220,7 @@ static uint32_t glucose_feature_char_add(ble_gls_t * p_gls)
 
     memset(&char_md, 0, sizeof(char_md));
 
-    char_md.char_props.read  = 1;    
+    char_md.char_props.read  = 1;
     char_md.p_char_user_desc = NULL;
     char_md.p_char_pf        = NULL;
     char_md.p_user_desc_md   = NULL;
@@ -298,9 +299,9 @@ static uint32_t record_access_control_point_char_add(ble_gls_t * p_gls)
     attr_md.rd_auth = 0;
     attr_md.wr_auth = 1;
     attr_md.vlen    = 1;
-    
+
     memset(&attr_char_value, 0, sizeof(attr_char_value));
-    
+
     attr_char_value.p_uuid    = &ble_uuid;
     attr_char_value.p_attr_md = &attr_md;
     attr_char_value.init_len  = 0;
@@ -428,7 +429,7 @@ static void racp_send(ble_gls_t * p_gls, ble_racp_value_t * p_racp_val)
             state_set(STATE_RACP_RESPONSE_IND_VERIF);
             break;
 
-        case BLE_ERROR_NO_TX_BUFFERS:
+        case BLE_ERROR_NO_TX_PACKETS:
             // Wait for TX_COMPLETE event to retry transmission
             state_set(STATE_RACP_RESPONSE_PENDING);
             break;
@@ -715,7 +716,7 @@ static void racp_report_records_procedure(ble_gls_t * p_gls)
                 }
                 break;
 
-            case BLE_ERROR_NO_TX_BUFFERS:
+            case BLE_ERROR_NO_TX_PACKETS:
                 // Wait for TX_COMPLETE event to resume transmission
                 return;
 
@@ -1005,7 +1006,10 @@ static void on_racp_value_write(ble_gls_t * p_gls, ble_gatts_evt_write_t * p_evt
     bool                                  are_cccd_configured;
     uint32_t                              err_code;
 
-    auth_reply.type = BLE_GATTS_AUTHORIZE_TYPE_WRITE;
+    auth_reply.type                = BLE_GATTS_AUTHORIZE_TYPE_WRITE;
+    auth_reply.params.write.offset = 0;
+    auth_reply.params.write.len    = 0;
+    auth_reply.params.write.p_data = NULL;
 
     err_code = ble_gls_are_cccd_configured(p_gls, &are_cccd_configured);
     if (err_code != NRF_SUCCESS)
@@ -1040,8 +1044,10 @@ static void on_racp_value_write(ble_gls_t * p_gls, ble_gatts_evt_write_t * p_evt
     if (is_request_to_be_executed(&racp_request, &response_code))
     {
         auth_reply.params.write.gatt_status = BLE_GATT_STATUS_SUCCESS;
-        err_code                            = sd_ble_gatts_rw_authorize_reply(p_gls->conn_handle,
-                                                                              &auth_reply);
+        auth_reply.params.write.update      = 1;
+
+        err_code = sd_ble_gatts_rw_authorize_reply(p_gls->conn_handle,
+                                                   &auth_reply);
 
         if (err_code != NRF_SUCCESS)
         {
@@ -1064,6 +1070,7 @@ static void on_racp_value_write(ble_gls_t * p_gls, ble_gatts_evt_write_t * p_evt
     else if (response_code != RACP_RESPONSE_RESERVED)
     {
         auth_reply.params.write.gatt_status = BLE_GATT_STATUS_SUCCESS;
+        auth_reply.params.write.update      = 1;
         err_code                            = sd_ble_gatts_rw_authorize_reply(p_gls->conn_handle,
                                                                               &auth_reply);
 
@@ -1265,3 +1272,4 @@ uint32_t ble_gls_glucose_new_meas(ble_gls_t * p_gls, ble_gls_rec_t * p_rec)
     p_rec->meas.sequence_number = m_next_seq_num++;
     return ble_gls_db_record_add(p_rec);
 }
+#endif //BLE_GLS_ENABLED

@@ -12,7 +12,11 @@
 #ifndef PCA20006_H
 #define PCA20006_H
 
-// LEDs and buttons definition for PCA20006 board (beacon) 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// LEDs and buttons definition for PCA20006 board (beacon)
 #define LEDS_NUMBER    3
 
 #define LED_RGB_RED    16
@@ -23,11 +27,13 @@
 #define BSP_LED_1 LED_RGB_GREEN
 #define BSP_LED_2 LED_RGB_BLUE
 
+#define LEDS_LIST { LED_RGB_RED, LED_RGB_GREEN, LED_RGB_BLUE}
+
 #define BSP_LED_0_MASK    (1<<BSP_LED_0)
 #define BSP_LED_1_MASK    (1<<BSP_LED_1)
 #define BSP_LED_2_MASK    (1<<BSP_LED_2)
 #define LEDS_MASK      (BSP_LED_0_MASK | BSP_LED_1_MASK | BSP_LED_2_MASK)
-#define LEDS_INV_MASK  0x00000000
+#define LEDS_INV_MASK  LEDS_MASK
 
 #define BUTTON_0       8
 #define BUTTON_1       18
@@ -49,5 +55,19 @@
 #define CTS_PIN_NUMBER 21
 #define RTS_PIN_NUMBER 11
 #define HWFC           true
+
+// Low frequency clock source to be used by the SoftDevice
+#ifdef S210
+#define NRF_CLOCK_LFCLKSRC      NRF_CLOCK_LFCLKSRC_XTAL_20_PPM
+#else
+#define NRF_CLOCK_LFCLKSRC      {.source = NRF_CLOCK_LF_SRC_XTAL, .rc_ctiv = 0, .rc_temp_ctiv = 0, .xtal_accuracy=NRF_CLOCK_LF_XTAL_ACCURACY_20_PPM}
+#endif
+
+
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

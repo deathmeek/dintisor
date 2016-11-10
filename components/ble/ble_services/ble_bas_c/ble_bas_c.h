@@ -9,7 +9,7 @@
 
 /**@file
  *
- * @defgroup ble_sdk_srv_bas_c Battery Service Client
+ * @defgroup ble_bas_c Battery Service Client
  * @{
  * @ingroup  ble_sdk_srv
  * @brief    Battery Service Client module.
@@ -27,6 +27,11 @@
 
 #include <stdint.h>
 #include "ble.h"
+#include "ble_db_discovery.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @defgroup bas_c_enums Enumerations
@@ -48,13 +53,23 @@ typedef enum
  * @{
  */
 
+
+/**@brief Structure containing the handles related to the Battery Service found on the peer. */
+typedef struct
+{
+    uint16_t                bl_cccd_handle;  /**< Handle of the CCCD of the Battery Level characteristic. */
+    uint16_t                bl_handle;       /**< Handle of the Battery Level characteristic as provided by the SoftDevice. */
+} ble_bas_c_db_t;
+
 /**@brief Battery Service Client Event structure. */
 typedef struct
 {
     ble_bas_c_evt_type_t evt_type;  /**< Event Type. */
+    uint16_t conn_handle;           /**< Connection handle relevent to this event.*/
     union
     {
-        uint8_t battery_level;  /**< Battery level received from peer. This field will be used for the events @ref BLE_BAS_C_EVT_BATT_NOTIFICATION and @ref BLE_BAS_C_EVT_BATT_READ_RESP.*/
+        ble_bas_c_db_t bas_db;         /**< Battery Service related handles found on the peer device. This will be filled if the evt_type is @ref BLE_BAS_C_EVT_DISCOVERY_COMPLETE.*/
+        uint8_t        battery_level;  /**< Battery level received from peer. This field will be used for the events @ref BLE_BAS_C_EVT_BATT_NOTIFICATION and @ref BLE_BAS_C_EVT_BATT_READ_RESP.*/
     } params;
 } ble_bas_c_evt_t;
 
@@ -88,8 +103,7 @@ typedef void (* ble_bas_c_evt_handler_t) (ble_bas_c_t * p_bas_bas_c, ble_bas_c_e
 struct ble_bas_c_s
 {
     uint16_t                conn_handle;     /**< Connection handle as provided by the SoftDevice. */
-    uint16_t                bl_cccd_handle;  /**< Handle of the CCCD of the Battery Level characteristic. */
-    uint16_t                bl_handle;       /**< Handle of the Battery Level characteristic as provided by the SoftDevice. */
+    ble_bas_c_db_t          peer_bas_db;     /**< Handles related to BAS on the peer*/
     ble_bas_c_evt_handler_t evt_handler;     /**< Application event handler to be called when there is an event related to the Battery service. */
 };
 
@@ -111,7 +125,7 @@ typedef struct
  *
  * @details    This function will initialize the module and set up Database Discovery to discover
  *             the Battery Service. After calling this function, call @ref ble_db_discovery_start
- *             to start discovery.
+ *             to start discovery once a link with a peer has been established.
  *
  * @param[out] p_ble_bas_c      Pointer to the Battery Service client structure.
  * @param[in]  p_ble_bas_c_init Pointer to the Battery Service initialization structure containing
@@ -147,7 +161,7 @@ void ble_bas_c_on_ble_evt(ble_bas_c_t * p_ble_bas_c, const ble_evt_t * p_ble_evt
  *
  * @retval  NRF_SUCCESS     If the SoftDevice has been requested to write to the CCCD of the peer.
  *          NRF_ERROR_NULL  Parameter is NULL.
- *                          Otherwise, an error code returned by the SoftDevice API @ref 
+ *                          Otherwise, an error code returned by the SoftDevice API @ref
  *                          sd_ble_gattc_write.
  */
 uint32_t ble_bas_c_bl_notif_enable(ble_bas_c_t * p_ble_bas_c);
@@ -162,7 +176,45 @@ uint32_t ble_bas_c_bl_notif_enable(ble_bas_c_t * p_ble_bas_c);
 uint32_t ble_bas_c_bl_read(ble_bas_c_t * p_ble_bas_c);
 
 
+/**@brief     Function for handling events from the database discovery module.
+ *
+ * @details   Call this function when getting a callback event from the DB discovery modue.
+ *            This function will handle an event from the database discovery module, and determine
+ *            if it relates to the discovery of Battery service at the peer. If so, it will
+ *            call the application's event handler indicating that the Battery service has been
+ *            discovered at the peer. It also populates the event with the service related
+ *            information before providing it to the application.
+ *
+ * @param     p_ble_bas_c Pointer to the Battery Service client structure.
+ * @param[in] p_evt Pointer to the event received from the database discovery module.
+ *
+ */
+void ble_bas_on_db_disc_evt(ble_bas_c_t * p_ble_bas_c, const ble_db_discovery_evt_t * p_evt);
+
+
+/**@brief     Function for assigning handles to a this instance of bas_c.
+ *
+ * @details   Call this function when a link has been established with a peer to
+ *            associate this link to this instance of the module. This makes it
+ *            possible to handle several link and associate each link to a particular
+ *            instance of this module. The connection handle and attribute handles will be
+ *            provided from the discovery event @ref BLE_BAS_C_EVT_DISCOVERY_COMPLETE.
+ *
+ * @param[in] p_ble_bas_c    Pointer to the Battery client structure instance to associate.
+ * @param[in] conn_handle    Connection handle to associated with the given Battery Client Instance.
+ * @param[in] p_peer_handles Attribute handles on the BAS server you want this BAS client to
+ *                           interact with.
+ */
+uint32_t ble_bas_c_handles_assign(ble_bas_c_t *    p_ble_bas_c,
+                                  uint16_t         conn_handle,
+                                  ble_bas_c_db_t * p_peer_handles);
+
 /** @} */ // End tag for Function group.
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BLE_BAS_C_H__
 

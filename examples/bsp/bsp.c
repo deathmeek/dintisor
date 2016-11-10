@@ -18,6 +18,11 @@
 #include "nrf_gpio.h"
 #include "nrf_error.h"
 
+#ifdef BSP_UART_SUPPORT
+#define NRF_LOG_MODULE_NAME "BSP"
+#include "nrf_log.h"
+#endif // BSP_UART_SUPPORT
+
 #ifndef BSP_SIMPLE
 #include "app_timer.h"
 #include "app_button.h"
@@ -49,16 +54,16 @@
 static bsp_indication_t m_stable_state        = BSP_INDICATE_IDLE;
 static uint32_t         m_app_ticks_per_100ms = 0;
 static uint32_t         m_indication_type     = 0;
-static app_timer_id_t   m_leds_timer_id;
-static app_timer_id_t   m_alert_timer_id;
+static uint32_t         m_alert_mask          = 0;
+APP_TIMER_DEF(m_leds_timer_id);
+APP_TIMER_DEF(m_alert_timer_id);
 #endif // LEDS_NUMBER > 0 && !(defined BSP_SIMPLE)
 
 #if BUTTONS_NUMBER > 0
 #ifndef BSP_SIMPLE
 static bsp_event_callback_t   m_registered_callback         = NULL;
 static bsp_button_event_cfg_t m_events_list[BUTTONS_NUMBER] = {{BSP_EVENT_NOTHING, BSP_EVENT_NOTHING}};
-
-static app_timer_id_t   m_button_timer_id;
+APP_TIMER_DEF(m_button_timer_id);
 static void bsp_button_event_handler(uint8_t pin_no, uint8_t button_action);
 #endif // BSP_SIMPLE
 
@@ -135,7 +140,7 @@ uint32_t bsp_buttons_state_get(uint32_t * p_buttons_state)
 uint32_t bsp_button_is_pressed(uint32_t button, bool * p_state)
 {
 #if BUTTONS_NUMBER > 0
-    if(button < BUTTONS_NUMBER)
+    if (button < BUTTONS_NUMBER)
     {
         uint32_t buttons = ~NRF_GPIO->IN;
         *p_state = (buttons & (1 << m_buttons_list[button])) ? true : false;
@@ -172,7 +177,7 @@ static void bsp_button_event_handler(uint8_t pin_no, uint8_t button_action)
 
     if (button < BUTTONS_NUMBER)
     {
-        switch(button_action)
+        switch (button_action)
         {
             case APP_BUTTON_PUSH:
                 event = m_events_list[button].push_event;
@@ -228,13 +233,13 @@ static uint32_t bsp_led_indication(bsp_indication_t indicate)
     switch (indicate)
     {
         case BSP_INDICATE_IDLE:
-            LEDS_OFF(LEDS_MASK & ~ALERT_LED_MASK);
+            LEDS_OFF(LEDS_MASK & ~m_alert_mask);
             m_stable_state = indicate;
             break;
 
         case BSP_INDICATE_SCANNING:
         case BSP_INDICATE_ADVERTISING:
-            LEDS_OFF(LEDS_MASK & ~BSP_LED_0_MASK & ~ALERT_LED_MASK);
+            LEDS_OFF(LEDS_MASK & ~BSP_LED_0_MASK & ~m_alert_mask);
 
             // in advertising blink LED_0
             if (LED_IS_ON(BSP_LED_0_MASK))
@@ -257,7 +262,7 @@ static uint32_t bsp_led_indication(bsp_indication_t indicate)
             break;
 
         case BSP_INDICATE_ADVERTISING_WHITELIST:
-            LEDS_OFF(LEDS_MASK & ~BSP_LED_0_MASK & ~ALERT_LED_MASK);
+            LEDS_OFF(LEDS_MASK & ~BSP_LED_0_MASK & ~m_alert_mask);
 
             // in advertising quickly blink LED_0
             if (LED_IS_ON(BSP_LED_0_MASK))
@@ -281,7 +286,7 @@ static uint32_t bsp_led_indication(bsp_indication_t indicate)
             break;
 
         case BSP_INDICATE_ADVERTISING_SLOW:
-            LEDS_OFF(LEDS_MASK & ~BSP_LED_0_MASK & ~ALERT_LED_MASK);
+            LEDS_OFF(LEDS_MASK & ~BSP_LED_0_MASK & ~m_alert_mask);
 
             // in advertising slowly blink LED_0
             if (LED_IS_ON(BSP_LED_0_MASK))
@@ -303,7 +308,7 @@ static uint32_t bsp_led_indication(bsp_indication_t indicate)
             break;
 
         case BSP_INDICATE_ADVERTISING_DIRECTED:
-            LEDS_OFF(LEDS_MASK & ~BSP_LED_0_MASK & ~ALERT_LED_MASK);
+            LEDS_OFF(LEDS_MASK & ~BSP_LED_0_MASK & ~m_alert_mask);
 
             // in advertising very quickly blink LED_0
             if (LED_IS_ON(BSP_LED_0_MASK))
@@ -327,7 +332,7 @@ static uint32_t bsp_led_indication(bsp_indication_t indicate)
             break;
 
         case BSP_INDICATE_BONDING:
-            LEDS_OFF(LEDS_MASK & ~BSP_LED_0_MASK & ~ALERT_LED_MASK);
+            LEDS_OFF(LEDS_MASK & ~BSP_LED_0_MASK & ~m_alert_mask);
 
             // in bonding fast blink LED_0
             if (LED_IS_ON(BSP_LED_0_MASK))
@@ -345,7 +350,7 @@ static uint32_t bsp_led_indication(bsp_indication_t indicate)
             break;
 
         case BSP_INDICATE_CONNECTED:
-            LEDS_OFF(LEDS_MASK & ~BSP_LED_0_MASK & ~ALERT_LED_MASK);
+            LEDS_OFF(LEDS_MASK & ~BSP_LED_0_MASK & ~m_alert_mask);
             LEDS_ON(BSP_LED_0_MASK);
             m_stable_state = indicate;
             break;
@@ -377,6 +382,7 @@ static uint32_t bsp_led_indication(bsp_indication_t indicate)
         case BSP_INDICATE_FATAL_ERROR:
             // on fatal error turn on all leds
             LEDS_ON(LEDS_MASK);
+            m_stable_state = indicate;
             break;
 
         case BSP_INDICATE_ALERT_0:
@@ -390,16 +396,18 @@ static uint32_t bsp_led_indication(bsp_indication_t indicate)
             // a little trick to find out that if it did not fall through ALERT_OFF
             if (next_delay && (err_code == NRF_SUCCESS))
             {
+                m_alert_mask = ALERT_LED_MASK;
                 if (next_delay > 1)
                 {
                     err_code = app_timer_start(m_alert_timer_id, BSP_MS_TO_TICK(
                                                    (next_delay * ALERT_INTERVAL)), NULL);
                 }
-                LEDS_ON(ALERT_LED_MASK);
+                LEDS_ON(m_alert_mask);
             }
             else
             {
-                LEDS_OFF(ALERT_LED_MASK);
+                LEDS_OFF(m_alert_mask);
+                m_alert_mask = 0;
             }
             break;
 
@@ -494,9 +502,8 @@ uint32_t bsp_indication_text_set(bsp_indication_t indicate, char const * p_text)
     uint32_t err_code = bsp_indication_set(indicate);
 
 #ifdef BSP_UART_SUPPORT
-    printf("%s", p_text);
+    NRF_LOG_INFO("%s",(uint32_t)p_text);
 #endif // BSP_UART_SUPPORT
-
     return err_code;
 }
 
@@ -658,6 +665,16 @@ uint32_t bsp_wakeup_buttons_set(uint32_t wakeup_buttons)
         new_cnf |= (new_sense << GPIO_PIN_CNF_SENSE_Pos);
         NRF_GPIO->PIN_CNF[m_buttons_list[i]] = new_cnf;
     }
+    return NRF_SUCCESS;
+#else
+    return NRF_ERROR_NOT_SUPPORTED;
+#endif
+}
+
+uint32_t bsp_wakeup_nfc_set(void)
+{
+#if defined(BOARD_PCA10040)
+    NRF_NFCT->TASKS_SENSE = 1;
     return NRF_SUCCESS;
 #else
     return NRF_ERROR_NOT_SUPPORTED;

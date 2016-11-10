@@ -12,6 +12,10 @@
 #ifndef PCA10000_H
 #define PCA10000_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Definitions for PCA10000 v2.0.0 or higher
 #if 1
 
@@ -58,6 +62,18 @@
 #define RTS_PIN_NUMBER 0
 #define HWFC           true
 
+#endif
+
+// Low frequency clock source to be used by the SoftDevice
+#define NRF_CLOCK_LFCLKSRC      {.source        = NRF_CLOCK_LF_SRC_XTAL,            \
+                                 .rc_ctiv       = 0,                                \
+                                 .rc_temp_ctiv  = 0,                                \
+                                 .xtal_accuracy = NRF_CLOCK_LF_XTAL_ACCURACY_20_PPM}
+
+
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

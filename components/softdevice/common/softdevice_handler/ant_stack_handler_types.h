@@ -25,6 +25,11 @@
 #ifdef ANT_STACK_SUPPORT_REQD
 
 #include <stdlib.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define ANT_STACK_EVT_MSG_BUF_SIZE      32                                                /**< Size of ANT event message buffer. This will be provided to the SoftDevice while fetching an event. */
 #define ANT_STACK_EVT_STRUCT_SIZE       (sizeof(ant_evt_t))                               /**< Size of the @ref ant_evt_t structure. This will be used by the @ref softdevice_handler to internal event buffer size needed. */
@@ -32,9 +37,13 @@
 /**@brief ANT stack event type. */
 typedef struct
 {
-    uint8_t channel;                                                                      /**< Channel number. */
-    uint8_t event;                                                                        /**< Event code. */
-    uint8_t evt_buffer[ANT_STACK_EVT_MSG_BUF_SIZE];                                       /**< Event message buffer. */
+    union
+    {
+        uint32_t ulForceAlign;                           ///< force the evt_buffer to be 4-byte aligned, required for some casting to ANT_MESSAGE.
+        uint8_t  evt_buffer[ANT_STACK_EVT_MSG_BUF_SIZE]; ///< Event message buffer.
+    } msg;
+    uint8_t channel;                                     ///< Channel number.
+    uint8_t event;                                       ///< Event code.
 } ant_evt_t;
 
 /**@brief Application ANT stack event handler type. */
@@ -63,6 +72,11 @@ uint32_t softdevice_ant_evt_handler_set(ant_evt_handler_t ant_evt_handler);
 #define ANT_STACK_EVT_STRUCT_SIZE       0                                                 /**< Since the ANT stack support is not required, this is equated to 0, so that the @ref softdevice_handler.h can compute the internal event buffer size without having to care for ANT events.*/
 
 #endif // ANT_STACK_SUPPORT_REQD
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // ANT_STACK_HANDLER_TYPES_H__
 

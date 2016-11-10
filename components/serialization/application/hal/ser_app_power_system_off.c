@@ -10,13 +10,12 @@
  *
  */
 
-#include "nrf51.h"
-#include "nrf51_bitfields.h"
+#include "nrf.h"
 #include "ser_app_power_system_off.h"
 
 static bool m_power_system_off = false;
 
- 
+
 void ser_app_power_system_off_set(void)
 {
     m_power_system_off = true;
@@ -32,5 +31,5 @@ void ser_app_power_system_off_enter(void)
     NRF_POWER->SYSTEMOFF = POWER_SYSTEMOFF_SYSTEMOFF_Enter;
 
     /*Only for debugging purpose, will not be reached without connected debugger*/
-    while(1);
+    while (1);
 }
