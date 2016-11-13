@@ -121,11 +121,11 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
             error_info = (error_info_t*)info;
             if(error_info->p_file_name)
             {
-                NRF_LOG_ERROR("error %"PRIu32" in %s:%"PRIu16"\n", error_info->err_code, nrf_log_push((char*)error_info->p_file_name), error_info->line_num);
+                NRF_LOG_ERROR("error code 0x%"PRIx32" in %s:%"PRIu16"\n", error_info->err_code, nrf_log_push((char*)error_info->p_file_name), error_info->line_num);
             }
             else
             {
-                NRF_LOG_ERROR("error %"PRIu32"\n", error_info->err_code);
+                NRF_LOG_ERROR("error code 0x%"PRIx32"\n", error_info->err_code);
             }
             break;
 
