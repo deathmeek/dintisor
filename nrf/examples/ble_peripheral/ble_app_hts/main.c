@@ -95,8 +95,6 @@
 
 static uint16_t                         m_conn_handle = BLE_CONN_HANDLE_INVALID;    /**< Handle of the current connection. */
 
-static bool                             m_hts_meas_ind_conf_pending = false;        /**< Flag to keep track of when an indication confirmation is pending. */
-
 APP_TIMER_DEF(m_battery_timer_id);                                                  /**< Battery timer. */
 
 static ble_uuid_t m_adv_uuids[] =       {{BLE_UUID_BATTERY_SERVICE, BLE_UUID_TYPE_BLE},
@@ -186,9 +184,6 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
             {
                 APP_ERROR_CHECK(err_code);
             }
-            // Send a single temperature measurement if indication is enabled.
-            // NOTE: For this to work, make sure ble_hts_on_ble_evt() is called before
-            // dm_ble_evt_handler() in ble_evt_dispatch().
         } break; // PM_EVT_CONN_SEC_SUCCEEDED
 
         case PM_EVT_CONN_SEC_FAILED:
@@ -564,7 +559,6 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
         case BLE_GAP_EVT_DISCONNECTED:
             NRF_LOG_INFO("Disconnected.\r\n");
             m_conn_handle               = BLE_CONN_HANDLE_INVALID;
-            m_hts_meas_ind_conf_pending = false;
             break; // BLE_GAP_EVT_DISCONNECTED
 
         case BLE_GATTC_EVT_TIMEOUT:

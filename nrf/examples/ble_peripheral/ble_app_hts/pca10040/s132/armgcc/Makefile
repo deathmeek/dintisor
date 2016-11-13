@@ -23,7 +23,6 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/hardfault/hardfault_implementation.c \
   $(SDK_ROOT)/components/libraries/util/nrf_assert.c \
   $(SDK_ROOT)/components/libraries/util/sdk_mapped_flags.c \
-  $(SDK_ROOT)/components/libraries/sensorsim/sensorsim.c \
   $(SDK_ROOT)/components/drivers_nrf/clock/nrf_drv_clock.c \
   $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
   $(SDK_ROOT)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
@@ -60,7 +59,6 @@ SRC_FILES += \
   $(SDK_ROOT)/components/toolchain/system_nrf52.c \
   $(SDK_ROOT)/components/ble/ble_services/ble_bas/ble_bas.c \
   $(SDK_ROOT)/components/ble/ble_services/ble_dis/ble_dis.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_hts/ble_hts.c \
   $(SDK_ROOT)/components/softdevice/common/softdevice_handler/softdevice_handler.c \
 
 # Include folders common to all targets
