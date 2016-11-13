@@ -355,11 +355,17 @@ static void stimulate_service_on_gatts_write_activ_params(void)
 	if(stimulate_value && !stimulate_prev)
 	{
 		activ_start();
-		APP_ERROR_CHECK(app_timer_start(timer, APP_TIMER_TICKS(t_total_value / 1000, 0), NULL));
+
+		uint32_t ticks = APP_TIMER_TICKS(t_total_value / 1000, 0);
+		if(ticks > 0 && ticks < APP_TIMER_MIN_TIMEOUT_TICKS)
+			ticks = APP_TIMER_MIN_TIMEOUT_TICKS;
+		if(ticks > 0)
+			APP_ERROR_CHECK(app_timer_start(timer, ticks, NULL));
 	}
 	else if(!stimulate_value && stimulate_prev)
 	{
 		activ_stop();
+
 		APP_ERROR_CHECK(app_timer_stop(timer));
 	}
 	stimulate_prev = stimulate_value;
