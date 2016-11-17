@@ -23,7 +23,6 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/hardfault/hardfault_implementation.c \
   $(SDK_ROOT)/components/libraries/util/nrf_assert.c \
   $(SDK_ROOT)/components/libraries/util/sdk_mapped_flags.c \
-  $(SDK_ROOT)/components/libraries/sensorsim/sensorsim.c \
   $(SDK_ROOT)/components/drivers_nrf/clock/nrf_drv_clock.c \
   $(SDK_ROOT)/components/drivers_nrf/common/nrf_drv_common.c \
   $(SDK_ROOT)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
@@ -60,7 +59,6 @@ SRC_FILES += \
   $(SDK_ROOT)/components/toolchain/system_nrf51.c \
   $(SDK_ROOT)/components/ble/ble_services/ble_bas/ble_bas.c \
   $(SDK_ROOT)/components/ble/ble_services/ble_dis/ble_dis.c \
-  $(SDK_ROOT)/components/ble/ble_services/ble_hts/ble_hts.c \
   $(SDK_ROOT)/components/softdevice/common/softdevice_handler/softdevice_handler.c \
 
 # Include folders common to all targets
@@ -188,6 +186,7 @@ ASMFLAGS += -DSOFTDEVICE_PRESENT
 ASMFLAGS += -DNRF51
 ASMFLAGS += -DS130
 ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
+ASMFLAGS += -DDEBUG -DNRF_LOG_LEVEL=4 -DNRF_LOG_DEFAULT_LEVEL=4
 ASMFLAGS += -DSWI_DISABLE0
 ASMFLAGS += -DNRF51822 -D__HEAP_SIZE=1280
 ASMFLAGS += -DNRF_SD_BLE_API_VERSION=2
