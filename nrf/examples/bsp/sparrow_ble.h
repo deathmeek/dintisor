@@ -4,6 +4,10 @@
 #ifndef SPARROW_BLE_H
 #define SPARROW_BLE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // LEDs definitions for Sparrow BLE
 #define LEDS_NUMBER    3
 
@@ -45,9 +49,31 @@
 
 #define BUTTONS_MASK   (BSP_BUTTON_0_MASK | BSP_BUTTON_1_MASK)
 
-// UART connection with J-Link
 #define RX_PIN_NUMBER  9
 #define TX_PIN_NUMBER  11
 #define HWFC           false
 
+#define SPIS_MISO_PIN  28    // SPI MISO signal.
+#define SPIS_SCK_PIN   29    // SPI SCK signal.
+
+#define SPIM0_SCK_PIN       4     /**< SPI clock GPIO pin number. */
+#define SPIM0_MOSI_PIN      1     /**< SPI Master Out Slave In GPIO pin number. */
+#define SPIM0_MISO_PIN      3     /**< SPI Master In Slave Out GPIO pin number. */
+#define SPIM0_SS_PIN        2     /**< SPI Slave Select GPIO pin number. */
+
+// Low frequency clock source to be used by the SoftDevice
+#ifdef S210
+#define NRF_CLOCK_LFCLKSRC      NRF_CLOCK_LFCLKSRC_XTAL_20_PPM
+#else
+#define NRF_CLOCK_LFCLKSRC      {.source        = NRF_CLOCK_LF_SRC_XTAL,            \
+                                 .rc_ctiv       = 0,                                \
+                                 .rc_temp_ctiv  = 0,                                \
+                                 .xtal_accuracy = NRF_CLOCK_LF_XTAL_ACCURACY_20_PPM}
 #endif
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // SPARROW_BLE

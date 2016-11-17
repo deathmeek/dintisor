@@ -12,19 +12,54 @@
 
 #include "app_util_platform.h"
 
+#ifdef SOFTDEVICE_PRESENT
+/* Global nvic state instance, required by nrf_nvic.h */
+nrf_nvic_state_t nrf_nvic_state;
+#endif
+
 static uint32_t m_in_critical_region = 0;
 
-void critical_region_enter(void)
+void app_util_disable_irq(void)
 {
-    __disable_irq();    
-    m_in_critical_region++;    
+    __disable_irq();
+    m_in_critical_region++;
 }
 
-void critical_region_exit(void)
+void app_util_enable_irq(void)
 {
-    m_in_critical_region--;    
+    m_in_critical_region--;
     if (m_in_critical_region == 0)
     {
         __enable_irq();
     }
 }
+
+void app_util_critical_region_enter(uint8_t *p_nested)
+{
+#if __CORTEX_M == (0x04U)
+    ASSERT(APP_LEVEL_PRIVILEGED == privilege_level_get())
+#endif
+
+#if defined(SOFTDEVICE_PRESENT)
+    /* return value can be safely ignored */
+    (void) sd_nvic_critical_region_enter(p_nested);
+#else
+    app_util_disable_irq();
+#endif
+}
+
+void app_util_critical_region_exit(uint8_t nested)
+{
+#if __CORTEX_M == (0x04U)
+    ASSERT(APP_LEVEL_PRIVILEGED == privilege_level_get())
+#endif
+
+#if defined(SOFTDEVICE_PRESENT)
+    /* return value can be safely ignored */
+    (void) sd_nvic_critical_region_exit(nested);
+#else
+    app_util_enable_irq();
+#endif
+}
+
+

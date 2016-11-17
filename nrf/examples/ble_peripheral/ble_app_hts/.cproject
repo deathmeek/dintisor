@@ -2,7 +2,7 @@
 <?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
 	<storageModule moduleId="org.eclipse.cdt.core.settings">
 		<cconfiguration id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030">
-			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030" moduleId="org.eclipse.cdt.core.settings" name="pca10028_s110">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030" moduleId="org.eclipse.cdt.core.settings" name="pca10028_s130">
 				<externalSettings/>
 				<extensions>
 					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
@@ -14,7 +14,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildProperties="" description="pca10028/s110/armgcc/_build" id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030" name="pca10028_s110" parent="org.eclipse.cdt.build.core.emptycfg">
+				<configuration artifactName="${ProjName}" buildProperties="" description="pca10028/s130/armgcc/_build" id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030" name="pca10028_s130" parent="org.eclipse.cdt.build.core.emptycfg">
 					<folderInfo id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030.1597497962" name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.cross.base.863528491" name="cdt.managedbuild.toolchain.gnu.cross.base" superClass="cdt.managedbuild.toolchain.gnu.cross.base">
 							<option id="cdt.managedbuild.option.gnu.cross.prefix.592614670" name="Prefix" superClass="cdt.managedbuild.option.gnu.cross.prefix"/>
@@ -45,7 +45,7 @@
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
 		<cconfiguration id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030.175275909">
-			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030.175275909" moduleId="org.eclipse.cdt.core.settings" name="sparrow_ble_s110">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030.175275909" moduleId="org.eclipse.cdt.core.settings" name="sparrow_ble_s130">
 				<externalSettings/>
 				<extensions>
 					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
@@ -57,7 +57,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildProperties="" description="sparrow_ble/s110/armgcc/_build" id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030.175275909" name="sparrow_ble_s110" parent="org.eclipse.cdt.build.core.emptycfg">
+				<configuration artifactName="${ProjName}" buildProperties="" description="sparrow_ble/s130/armgcc/_build" id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030.175275909" name="sparrow_ble_s130" parent="org.eclipse.cdt.build.core.emptycfg">
 					<folderInfo id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030.175275909." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.cross.base.521780597" name="cdt.managedbuild.toolchain.gnu.cross.base" superClass="cdt.managedbuild.toolchain.gnu.cross.base">
 							<option id="cdt.managedbuild.option.gnu.cross.prefix.303395238" name="Prefix" superClass="cdt.managedbuild.option.gnu.cross.prefix"/>
@@ -88,7 +88,7 @@
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
 		<cconfiguration id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030.1689260625">
-			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030.1689260625" moduleId="org.eclipse.cdt.core.settings" name="pca10031_s110">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030.1689260625" moduleId="org.eclipse.cdt.core.settings" name="pca10031_s130">
 				<externalSettings/>
 				<extensions>
 					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
@@ -100,7 +100,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildProperties="" description="pca10031/s110/armgcc/_build" id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030.1689260625" name="pca10031_s110" parent="org.eclipse.cdt.build.core.emptycfg">
+				<configuration artifactName="${ProjName}" buildProperties="" description="pca10031/s130/armgcc/_build" id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030.1689260625" name="pca10031_s130" parent="org.eclipse.cdt.build.core.emptycfg">
 					<folderInfo id="cdt.managedbuild.toolchain.gnu.cross.base.1903879030.1689260625." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.cross.base.590700539" name="cdt.managedbuild.toolchain.gnu.cross.base" superClass="cdt.managedbuild.toolchain.gnu.cross.base">
 							<option id="cdt.managedbuild.option.gnu.cross.prefix.88135684" name="Prefix" superClass="cdt.managedbuild.option.gnu.cross.prefix"/>
@@ -136,18 +136,10 @@
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
-		<configuration configurationName="pca10028_s110">
-			<resource resourceType="PROJECT" workspacePath="/dintisor_nrf"/>
-		</configuration>
-		<configuration configurationName="pca10028_ser_s110_spi">
-			<resource resourceType="PROJECT" workspacePath="/dintisor_nrf"/>
-		</configuration>
-		<configuration configurationName="pca10028_ser_s110_uart">
-			<resource resourceType="PROJECT" workspacePath="/dintisor_nrf"/>
-		</configuration>
-		<configuration configurationName="pca10028_set_s110_hci">
-			<resource resourceType="PROJECT" workspacePath="/dintisor_nrf"/>
-		</configuration>
+		<configuration configurationName="pca10028_s130"/>
+		<configuration configurationName="pca10031_s130"/>
+		<configuration configurationName="sparrow_ble_s130"/>
 	</storageModule>
 	<storageModule moduleId="scannerConfiguration"/>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>

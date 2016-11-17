@@ -32,7 +32,11 @@
 #define DEBUG_EVT_SPI_MASTER_RAW_XFER_RESTARTED(data)
 
 #else
-#include "stdint.h"
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 //Low level hardware events
 typedef enum
@@ -73,7 +77,7 @@ void debug_evt(spi_master_raw_evt_type_t evt, uint32_t data);
 #define DEBUG_EVT(evt, data)    \
 do {                            \
     debug_evt(evt, data);       \
-} while(0);
+} while (0);
 
 
 #define DEBUG_EVT_SPI_MASTER_RAW_REQUEST(data)          \
@@ -157,6 +161,11 @@ do {                                                    \
 
 
 
+#endif
+
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif //SER_PHY_DEBUG_APP_H__

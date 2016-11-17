@@ -15,7 +15,7 @@
  *
  * @ingroup experimental_api
  * @defgroup sdk_common SDK Common Header
- * @breif All common headers needed for SDK examples will be included here so that application
+ * @brief All common headers needed for SDK examples will be included here so that application
  *       developer does not have to include headers on him/herself.
  * @{
  */
@@ -31,8 +31,19 @@
 #include "sdk_os.h"
 #include "sdk_errors.h"
 #include "app_util.h"
+#include "sdk_macros.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /** @} */
 /** @endcond */
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif // SDK_COMMON_H__
 

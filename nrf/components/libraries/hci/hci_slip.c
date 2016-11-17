@@ -9,12 +9,11 @@
  * the file.
  *
  */
-
+#include "sdk_config.h"
+#if HCI_SLIP_ENABLED
 #include "hci_slip.h"
 #include <stdlib.h>
-#include "hci_transport_config.h"
 #include "app_uart.h"
-#include "nrf51_bitfields.h"
 #include "nrf_error.h"
 
 #define APP_SLIP_END        0xC0                            /**< SLIP code for identifying the beginning and end of a packet frame.. */
@@ -30,7 +29,6 @@ typedef enum
     SLIP_TRANSMITTING,                                      /**< SLIP state is transmitting indicating write() has been called but data transmission has not completed. */
 } slip_states_t;
 
-static uint16_t                 m_uart_id;                  /** UART id returned from the UART module when calling app_uart_init, this id is kept, as it must be provided to the UART module when calling app_uart_close. */
 static slip_states_t            m_current_state = SLIP_OFF; /** Current state for the SLIP TX state machine. */
 
 static hci_slip_event_handler_t m_slip_event_handler;       /** Event callback function for handling of SLIP events, @ref hci_slip_evt_type_t . */
@@ -123,7 +121,7 @@ static uint32_t send_tx_byte_encoded(void)
 {
     uint32_t err_code;
 
-    switch(mp_tx_buffer[m_tx_buffer_index])
+    switch (mp_tx_buffer[m_tx_buffer_index])
     {
         case APP_SLIP_END:
             err_code = app_uart_put(APP_SLIP_ESC_END);
@@ -180,7 +178,7 @@ static void transmit_buffer(void)
 
         err_code = send_tx_byte();
 
-        if (err_code == NRF_ERROR_NO_MEM)
+        if (err_code == NRF_ERROR_NO_MEM || err_code == NRF_ERROR_BUSY)
         {
             // No memory left in UART TX buffer. Abort and wait for APP_UART_TX_EMPTY to continue.
             return;
@@ -335,20 +333,19 @@ static uint32_t slip_uart_open(void)
 
     app_uart_comm_params_t comm_params =
     {
-        HCI_SLIP_UART_RX_PIN_NUMBER,
-        HCI_SLIP_UART_TX_PIN_NUMBER,
-        HCI_SLIP_UART_RTS_PIN_NUMBER,
-        HCI_SLIP_UART_CTS_PIN_NUMBER,
-        HCI_SLIP_UART_MODE,
+        HCI_UART_RX_PIN,
+        HCI_UART_TX_PIN,
+        HCI_UART_RTS_PIN,
+        HCI_UART_CTS_PIN,
+        (app_uart_flow_control_t)HCI_UART_FLOW_CONTROL,
         false,
-        HCI_SLIP_UART_BAUDRATE
+        HCI_UART_BAUDRATE
     };
 
     err_code = app_uart_init(&comm_params,
                              NULL,
                              slip_uart_eventhandler,
-                             APP_IRQ_PRIORITY_LOW,
-                             &m_uart_id);
+                             APP_IRQ_PRIORITY_LOW);
 
     if (err_code == NRF_SUCCESS)
     {
@@ -386,7 +383,7 @@ uint32_t hci_slip_open()
 uint32_t hci_slip_close()
 {
     m_current_state   = SLIP_OFF;
-    uint32_t err_code = app_uart_close(m_uart_id);
+    uint32_t err_code = app_uart_close();
 
     return err_code;
 }
@@ -429,3 +426,4 @@ uint32_t hci_slip_rx_buffer_register(uint8_t * p_buffer, uint32_t length)
     handle_rx_byte      = handle_rx_byte_wait_start;
     return NRF_SUCCESS;
 }
+#endif //HCI_SLIP_ENABLED

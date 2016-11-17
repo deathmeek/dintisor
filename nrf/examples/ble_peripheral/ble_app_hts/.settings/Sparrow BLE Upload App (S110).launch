@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<launchConfiguration type="org.eclipse.ui.externaltools.ProgramLaunchConfigurationType">
-<stringAttribute key="org.eclipse.ui.externaltools.ATTR_LAUNCH_CONFIGURATION_BUILD_SCOPE" value="${none}"/>
-<stringAttribute key="org.eclipse.ui.externaltools.ATTR_LOCATION" value="${system_path:JLink}"/>
-<stringAttribute key="org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS" value="&quot;usb 518006170&quot; &quot;if swd&quot; &quot;speed 1000&quot; &quot;device nrf51822_xxaa&quot; &quot;loadfile nrf51822_xxaa_s110.hex&quot; &quot;r&quot; &quot;g&quot; &quot;exit&quot;"/>
-<stringAttribute key="org.eclipse.ui.externaltools.ATTR_WORKING_DIRECTORY" value="${project_loc}/${config_description:${project_name}}"/>
-</launchConfiguration>

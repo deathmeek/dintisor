@@ -20,7 +20,7 @@
  * @details This module provides a layer of abstraction from the board.
  *          It allows the user to indicate certain states on LEDs in a simple way.
  *          Module functionality can be modified by additional defines:
- *          - BSP_SIMPLE reduces functionality of this module to enable 
+ *          - BSP_SIMPLE reduces functionality of this module to enable
  *            and read state of the buttons
  *          - BSP_UART_SUPPORT enables support for UART
  */
@@ -45,6 +45,10 @@
  */
 #ifdef BSP_UART_SUPPORT
 #include "app_uart.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 #endif // BSP_UART_SUPPORT
 
 #define BUTTON_ERASE_BONDING BSP_BUTTON_0_MASK
@@ -55,65 +59,47 @@
 #define BSP_BUTTONS_ALL      0xFFFFFFFF
 #define BSP_BUTTONS_NONE     0
 
-#if (LEDS_NUMBER > 0) && !defined(BSP_SIMPLE)
-    #define BSP_LED_APP_TIMERS_NUMBER 2
-#else
-    #define BSP_APP_APP_TIMERS_NUMBER 0
-#endif // LEDS_NUMBER > 0
-
-#if (BUTTONS_NUMBER > 0) && !defined(BSP_SIMPLE)
-    #define BSP_BUTTONS_APP_TIMERS_NUMBER 1
-#else
-    #define BSP_BUTTONS_APP_TIMERS_NUMBER 0
-#endif // LEDS_NUMBER > 0
-
-/**@def BSP_APP_TIMERS_NUMBER
- * Number of @ref app_timer instances required by the BSP module.
- */
-#define BSP_APP_TIMERS_NUMBER (BSP_LED_APP_TIMERS_NUMBER + BSP_BUTTONS_APP_TIMERS_NUMBER)
-
 /**@brief Types of BSP initialization.
  */
 #define BSP_INIT_NONE    0        /**< This define specifies the type of initialization without support for LEDs and buttons (@ref bsp_init).*/
 #define BSP_INIT_LED     (1 << 0) /**< This bit enables LEDs during initialization (@ref bsp_init).*/
 #define BSP_INIT_BUTTONS (1 << 1) /**< This bit enables buttons during initialization (@ref bsp_init).*/
-#define BSP_INIT_UART    (1 << 2) /**< This bit enables UART during initialization (@ref bsp_init).*/
 
 #define BSP_LONG_PUSH_TIMEOUT_MS (1000) /**< The time to hold for a long push (in milliseconds). */
 
 typedef uint8_t bsp_button_action_t; /**< The different actions that can be performed on a button. */
 
 #define BSP_INDICATIONS_LIST {                    \
-        "BSP_INDICATE_IDLE\n\r",                  \
-        "BSP_INDICATE_SCANNING\n\r",              \
-        "BSP_INDICATE_ADVERTISING\n\r",           \
-        "BSP_INDICATE_ADVERTISING_WHITELIST\n\r", \
-        "BSP_INDICATE_ADVERTISING_SLOW\n\r",      \
-        "BSP_INDICATE_ADVERTISING_DIRECTED\n\r",  \
-        "BSP_INDICATE_BONDING\n\r",               \
-        "BSP_INDICATE_CONNECTED\n\r",             \
-        "BSP_INDICATE_SENT_OK\n\r",               \
-        "BSP_INDICATE_SEND_ERROR\n\r",            \
-        "BSP_INDICATE_RCV_OK\n\r",                \
-        "BSP_INDICATE_RCV_ERROR\n\r",             \
-        "BSP_INDICATE_FATAL_ERROR\n\r",           \
-        "BSP_INDICATE_ALERT_0\n\r",               \
-        "BSP_INDICATE_ALERT_1\n\r",               \
-        "BSP_INDICATE_ALERT_2\n\r",               \
-        "BSP_INDICATE_ALERT_3\n\r",               \
-        "BSP_INDICATE_ALERT_OFF\n\r",             \
-        "BSP_INDICATE_USER_STATE_OFF\n\r",        \
-        "BSP_INDICATE_USER_STATE_0\n\r",          \
-        "BSP_INDICATE_USER_STATE_1\n\r",          \
-        "BSP_INDICATE_USER_STATE_2\n\r",          \
-        "BSP_INDICATE_USER_STATE_3\n\r",          \
-        "BSP_INDICATE_USER_STATE_ON\n\r"          \
-} /**< See @ref examples_bsp_states for a list of how these states are indicated for the PCA10028 board and the PCA10031 dongle.*/
+        "BSP_INDICATE_IDLE\r\n",                  \
+        "BSP_INDICATE_SCANNING\r\n",              \
+        "BSP_INDICATE_ADVERTISING\r\n",           \
+        "BSP_INDICATE_ADVERTISING_WHITELIST\r\n", \
+        "BSP_INDICATE_ADVERTISING_SLOW\r\n",      \
+        "BSP_INDICATE_ADVERTISING_DIRECTED\r\n",  \
+        "BSP_INDICATE_BONDING\r\n",               \
+        "BSP_INDICATE_CONNECTED\r\n",             \
+        "BSP_INDICATE_SENT_OK\r\n",               \
+        "BSP_INDICATE_SEND_ERROR\r\n",            \
+        "BSP_INDICATE_RCV_OK\r\n",                \
+        "BSP_INDICATE_RCV_ERROR\r\n",             \
+        "BSP_INDICATE_FATAL_ERROR\r\n",           \
+        "BSP_INDICATE_ALERT_0\r\n",               \
+        "BSP_INDICATE_ALERT_1\r\n",               \
+        "BSP_INDICATE_ALERT_2\r\n",               \
+        "BSP_INDICATE_ALERT_3\r\n",               \
+        "BSP_INDICATE_ALERT_OFF\r\n",             \
+        "BSP_INDICATE_USER_STATE_OFF\r\n",        \
+        "BSP_INDICATE_USER_STATE_0\r\n",          \
+        "BSP_INDICATE_USER_STATE_1\r\n",          \
+        "BSP_INDICATE_USER_STATE_2\r\n",          \
+        "BSP_INDICATE_USER_STATE_3\r\n",          \
+        "BSP_INDICATE_USER_STATE_ON\r\n"          \
+} /**< See @ref examples_bsp_states for a list of how these states are indicated for the PCA10028/PCA10040 board and the PCA10031 dongle.*/
 
 
 /**@brief BSP indication states.
  *
- * @details See @ref examples_bsp_states for a list of how these states are indicated for the PCA10028 board and the PCA10031 dongle.
+ * @details See @ref examples_bsp_states for a list of how these states are indicated for the PCA10028/PCA10040 board and the PCA10031 dongle.
  */
 typedef enum
 {
@@ -324,6 +310,25 @@ uint32_t bsp_buttons_disable(void);
  */
 uint32_t bsp_wakeup_buttons_set(uint32_t wakeup_buttons);
 
+/**@brief       Function for configuring the NFCT peripheral as a wakeup source.
+ *
+ * @details     This function must be called before going to sleep, otherwise NFCT will not be
+ *              able to wake up the chip.
+ * @note        You can use this function only if NFCT is not used for other purposes than
+ *              wakeup.
+ *
+ * This function should only be called immediately before going into sleep.
+ *
+ * @retval      NRF_SUCCESS              If NFCT peripheral was successfully enabled.
+ * @retval      NRF_ERROR_NOT_SUPPORTED  If the board has no NFCT peripheral or NRF52 is not defined.
+ */
+uint32_t bsp_wakeup_nfc_set(void);
+
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BSP_H__
 

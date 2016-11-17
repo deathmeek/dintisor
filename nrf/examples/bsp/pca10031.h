@@ -12,6 +12,10 @@
 #ifndef PCA10031_H
 #define PCA10031_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // LEDs definitions for PCA10031
 #define LEDS_NUMBER    3
 
@@ -50,5 +54,20 @@
 #define CTS_PIN_NUMBER 10
 #define RTS_PIN_NUMBER 8
 #define HWFC           true
+
+// Low frequency clock source to be used by the SoftDevice
+#ifdef S210
+#define NRF_CLOCK_LFCLKSRC      NRF_CLOCK_LFCLKSRC_XTAL_20_PPM
+#else
+#define NRF_CLOCK_LFCLKSRC      {.source        = NRF_CLOCK_LF_SRC_XTAL,            \
+                                 .rc_ctiv       = 0,                                \
+                                 .rc_temp_ctiv  = 0,                                \
+                                 .xtal_accuracy = NRF_CLOCK_LF_XTAL_ACCURACY_20_PPM}
+#endif
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

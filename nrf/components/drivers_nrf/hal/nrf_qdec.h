@@ -12,10 +12,13 @@
 #ifndef NRF_QDEC_H__
 #define NRF_QDEC_H__
 
-#include "stddef.h"
+#include <stddef.h>
 #include "nrf_error.h"
 #include "nrf.h"
-#include "nrf51_bitfields.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*lint ++flb "Enter library region" */
 
@@ -23,7 +26,7 @@
  * @defgroup nrf_qdec_hal QDEC HAL
  * @{
  * @ingroup nrf_qdec
- * @brief Hardware abstraction layer for accessing the quadrature decoder (QDEC) peripheral.
+ * @brief Hardware access layer for accessing the quadrature decoder (QDEC) peripheral.
  */
 
 /**
@@ -89,19 +92,6 @@ typedef enum
     NRF_QDEC_DBFEN_DISABLE = QDEC_DBFEN_DBFEN_Disabled, /**< Mask for disabling the debounce filter.  */
     NRF_QDEC_DBFEN_ENABLE  = QDEC_DBFEN_DBFEN_Enabled   /**< Mask for enabling the debounce filter.  */
 } nrf_qdec_dbfen_t;
-
-
-/**
- * @enum nrf_qdec_pio_t
- * @brief QDEC peripheral input/output pins.
- */
-typedef enum
-{
-    NRF_QDEC_PIO_PSELLED, /**< QDEC LED output pin.  */
-    NRF_QDEC_PIO_PSELA,   /**< QDEC A input pin.  */
-    NRF_QDEC_PIO_PSELB    /**< QDEC B input pin.  */
-} nrf_qdec_pio_t;
-
 
 /**
  * @enum nrf_qdec_ledpol_t
@@ -236,74 +226,17 @@ __STATIC_INLINE uint32_t nrf_qdec_dbfen_get(void)
 
 /**
  * @brief Function for assigning QDEC pins.
- * @param[in] qdec_pio Function of the pin.
- * @param[in] pin_number Pin number.
- * @retval NRF_SUCCESS If the function could be assigned to the pin successfully.
- * @retval NRF_ERROR_INVALID_PARAM If the input parameters are invalid.
+ * @param[in] psela   Pin number.
+ * @param[in] pselb   Pin number.
+ * @param[in] pselled Pin number.
  */
-__STATIC_INLINE uint32_t nrf_qdec_pio_assign(nrf_qdec_pio_t qdec_pio, uint32_t pin_number)
+__STATIC_INLINE void nrf_qdec_pio_assign( uint32_t psela, uint32_t pselb, uint32_t pselled)
 {
-    uint32_t err_code = NRF_SUCCESS;
+    NRF_QDEC->PSELA = psela;
+    NRF_QDEC->PSELB = pselb;
+    NRF_QDEC->PSELLED = pselled;
 
-    if (qdec_pio == NRF_QDEC_PIO_PSELLED)
-    {
-        NRF_QDEC->PSELLED = pin_number;
-    }
-    else if (qdec_pio == NRF_QDEC_PIO_PSELA)
-    {
-        NRF_QDEC->PSELA = pin_number;
-    }
-    else if (qdec_pio == NRF_QDEC_PIO_PSELB)
-    {
-        NRF_QDEC->PSELB = pin_number;
-    }
-    else
-    {
-        err_code = NRF_ERROR_INVALID_PARAM;
-    }
-
-    return err_code;
 }
-
-
-/**
- * @brief Function for retrieving the assigned pin number for a pio function.
- * @param[in]  qdec_pio Function of the the pin.
- * @param[out] p_pin_number Pointer to the pin number.
- * @retval NRF_SUCCESS If the pin number could be retrieved successfully.
- * @retval NRF_ERROR_INVALID_PARAM If the input parameter is invalid.
- * @retval NRF_ERROR_NULL If no pin number is assigned.
- */
-__STATIC_INLINE uint32_t nrf_qdec_pio_assignment_get(nrf_qdec_pio_t qdec_pio,
-                                                     uint32_t     * p_pin_number)
-{
-    uint32_t err_code = NRF_SUCCESS;
-
-    if (p_pin_number == NULL)
-    {
-        return NRF_ERROR_NULL;
-    }
-
-    if (qdec_pio == NRF_QDEC_PIO_PSELLED)
-    {
-        *p_pin_number = NRF_QDEC->PSELLED;
-    }
-    else if (qdec_pio == NRF_QDEC_PIO_PSELA)
-    {
-        *p_pin_number = NRF_QDEC->PSELA;
-    }
-    else if (qdec_pio == NRF_QDEC_PIO_PSELB)
-    {
-        *p_pin_number = NRF_QDEC->PSELB;
-    }
-    else
-    {
-        err_code = NRF_ERROR_INVALID_PARAM;
-    }
-
-    return err_code;
-}
-
 
 /**
  * @brief Function for setting a specific QDEC task.
@@ -332,6 +265,10 @@ __STATIC_INLINE uint32_t * nrf_qdec_task_address_get(nrf_qdec_task_t qdec_task)
 __STATIC_INLINE void nrf_qdec_event_clear(nrf_qdec_event_t qdec_event)
 {
     *( (volatile uint32_t *)( (uint8_t *)NRF_QDEC + qdec_event) ) = 0;
+#if __CORTEX_M == 0x04
+    volatile uint32_t dummy = *((volatile uint32_t *)((uint8_t *)NRF_QDEC + qdec_event));
+    (void)dummy;
+#endif
 }
 
 
@@ -392,7 +329,7 @@ __STATIC_INLINE int32_t nrf_qdec_sampleper_reg_get(void)
  */
 __STATIC_INLINE uint32_t nrf_qdec_sampleper_to_value(uint32_t sampleper)
 {
-    return (1 << (7+sampleper));
+    return (1 << (7 + sampleper));
 }
 
 /**
@@ -502,7 +439,7 @@ __STATIC_INLINE uint32_t nrf_qdec_reportper_reg_get(void)
  */
 __STATIC_INLINE uint32_t nrf_qdec_reportper_to_value(uint32_t reportper)
 {
-    return (reportper == NRF_QDEC_REPORTPER_10) ? 10 : reportper*40;
+    return (reportper == NRF_QDEC_REPORTPER_10) ? 10 : reportper * 40;
 }
 
 
@@ -531,4 +468,9 @@ __STATIC_INLINE uint32_t nrf_qdec_ledpol_get(void)
  **/
 
 /*lint --flb "Leave library region" */
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

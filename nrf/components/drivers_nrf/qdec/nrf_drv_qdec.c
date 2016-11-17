@@ -10,6 +10,8 @@
  *
  */
 
+#include "sdk_config.h"
+#if QDEC_ENABLED
 #include <stdint.h>
 #include <stddef.h>
 
@@ -88,9 +90,7 @@ ret_code_t nrf_drv_qdec_init(const nrf_drv_qdec_config_t * p_config,
     nrf_gpio_cfg_input(p_config->pselled,NRF_GPIO_PIN_NOPULL);
     nrf_gpio_cfg_input(p_config->psela, NRF_GPIO_PIN_NOPULL);
     nrf_gpio_cfg_input(p_config->pselb, NRF_GPIO_PIN_NOPULL);
-    (void)nrf_qdec_pio_assign(NRF_QDEC_PIO_PSELA, p_config->psela);
-    (void)nrf_qdec_pio_assign(NRF_QDEC_PIO_PSELB, p_config->pselb);
-    (void)nrf_qdec_pio_assign(NRF_QDEC_PIO_PSELLED, p_config->pselled);
+    nrf_qdec_pio_assign( p_config->psela, p_config->pselb, p_config->pselled);
     nrf_qdec_ledpre_set(p_config->ledpre);
     nrf_qdec_ledpol_set(p_config->ledpol);
     nrf_qdec_shorts_enable(NRF_QDEC_SHORT_REPORTRDY_READCLRACC_MASK);
@@ -144,8 +144,8 @@ void nrf_drv_qdec_enable(void)
 void nrf_drv_qdec_disable(void)
 {
     ASSERT(m_state == NRF_DRV_STATE_POWERED_ON);
-    nrf_qdec_disable();
     nrf_qdec_task_trigger(NRF_QDEC_TASK_STOP);
+    nrf_qdec_disable();
     m_state = NRF_DRV_STATE_INITIALIZED;
 }
 
@@ -168,3 +168,4 @@ void nrf_drv_qdec_event_address_get(nrf_qdec_event_t event, uint32_t * p_event)
     *p_event = (uint32_t)nrf_qdec_event_address_get(event);
 }
 
+#endif //QDEC_ENABLED

@@ -9,7 +9,18 @@
  * the file.
  *
  */
- 
+#include "sdk_config.h"
+/** @file
+ *
+ * @defgroup retarget Retarget layer for stdio functions
+ * @{
+ * @ingroup app_common
+ * @} */
+#if RETARGET_ENABLED
+#if !defined(NRF_LOG_USES_RTT) || NRF_LOG_USES_RTT != 1
+#if !defined(HAS_SIMPLE_UART_RETARGET)
+
+
 #include <stdio.h>
 #include <stdint.h>
 #include "app_uart.h"
@@ -17,7 +28,7 @@
 #include "nrf_error.h"
 
 #if !defined(__ICCARM__)
-struct __FILE 
+struct __FILE
 {
     int handle;
 };
@@ -46,6 +57,7 @@ int fputc(int ch, FILE * p_file)
     UNUSED_VARIABLE(app_uart_put((uint8_t)ch));
     return ch;
 }
+
 #elif defined(__GNUC__)
 
 
@@ -76,3 +88,24 @@ int _read(int file, char * p_char, int len)
 }
 #endif
 
+#if defined(__ICCARM__)
+
+__ATTRIBUTES size_t __write(int file, const unsigned char * p_char, size_t len)
+{
+    int i;
+
+    UNUSED_PARAMETER(file);
+
+    for (i = 0; i < len; i++)
+    {
+        UNUSED_VARIABLE(app_uart_put(*p_char++));
+    }
+
+    return len;
+}
+
+#endif
+
+#endif // !defined(HAS_SIMPLE_UART_RETARGET)
+#endif // NRF_LOG_USES_RTT != 1
+#endif //RETARGET_ENABLED

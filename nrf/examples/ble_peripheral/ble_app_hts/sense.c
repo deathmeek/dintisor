@@ -138,7 +138,7 @@ void sense_measurement_finish(void)
 		if(	(err_code != NRF_SUCCESS) &&
 			(err_code != NRF_ERROR_BUSY) &&
 			(err_code != NRF_ERROR_INVALID_STATE) &&
-			(err_code != BLE_ERROR_NO_TX_BUFFERS) &&
+			(err_code != BLE_ERROR_NO_TX_PACKETS) &&
 			(err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING))
 		{
 			APP_ERROR_HANDLER(err_code);

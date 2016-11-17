@@ -24,6 +24,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#define NRF_LOG_MODULE_NAME "STIM"
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+
 
 static void stimulate_service_add_characteristic(ble_uuid_t*, ble_gatts_char_handles_t*, void*, uint8_t);
 static void stimulate_service_on_gatts_write_event(ble_gatts_evt_write_t*);
@@ -94,7 +98,7 @@ static uint16_t conn_handle = BLE_CONN_HANDLE_INVALID;
 
 // must update compute_timer_compare when changing timer configuration
 static const nrf_drv_timer_t stimulate_timer = NRF_DRV_TIMER_INSTANCE(1);
-static const nrf_drv_timer_config_t stimulate_timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG(1);
+static const nrf_drv_timer_config_t stimulate_timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
 static volatile enum pulse_timer_state_t {
 	TIMER_STOPPED = 0,
 	TIMER_RUNNING = 1,
@@ -108,7 +112,7 @@ static volatile uint16_t compare3;
 static const nrf_drv_timer_t train_timer = NRF_DRV_TIMER_INSTANCE(2);
 static uint32_t train_timer_remaining;
 
-static app_timer_id_t timer;
+APP_TIMER_DEF(timer);
 
 
 void stimulate_service_init(void)
@@ -273,11 +277,11 @@ static void stimulate_service_on_gatts_write_event(ble_gatts_evt_write_t* event)
 {
 	if(event->offset != 0)
 	{
-		printf("stimulate (%hx): write with non-zero offset %zd not supported\n", event->context.char_uuid.uuid, event->offset);
+		NRF_LOG_DEBUG("stimulate (%hx): write with non-zero offset %zd not supported\n", event->uuid.uuid, event->offset);
 		return;
 	}
 
-	switch(event->context.char_uuid.uuid)
+	switch(event->uuid.uuid)
 	{
 		case 0x0000:
 			if(event->len == 1)
@@ -297,24 +301,33 @@ static void stimulate_service_on_gatts_write_event(ble_gatts_evt_write_t* event)
 
 		default:
 		bad_length:
-			printf("stimulate (%hx): write of length %hd not supported\n", event->context.char_uuid.uuid, event->len);
+			NRF_LOG_DEBUG("stimulate (%hx): write of length %hd not supported\n", event->uuid.uuid, event->len);
 			return;
 	}
 
-	switch(event->context.char_uuid.uuid)
+	// uniformly get data written on event
+	uint32_t value_data;
+	ble_gatts_value_t value = {
+			.len = 4,
+			.offset = 0,
+			.p_value = (uint8_t*)&value_data,
+	};
+	sd_ble_gatts_value_get(BLE_CONN_HANDLE_INVALID, event->handle, &value);
+
+	switch(event->uuid.uuid)
 	{
 		case 0x0000:
-			printf("stimulate (%hx): write value %hu\n", event->context.char_uuid.uuid, *((uint8_t*)event->data));
+			NRF_LOG_INFO("stimulate (%hx): write value %hu\n", event->uuid.uuid, *((uint8_t*)&value_data));
 			stimulate_service_on_gatts_write_activ_params();
 			break;
 
 		case 0x0001:
-			printf("stimulate (%hx): write value %lu\n", event->context.char_uuid.uuid, *((uint32_t*)event->data));
+			NRF_LOG_INFO("stimulate (%hx): write value %lu\n", event->uuid.uuid, value_data);
 			break;
 
 		case 0x0002:
 		case 0x0003:
-			printf("stimulate (%hx): write value %lu\n", event->context.char_uuid.uuid, *((uint32_t*)event->data));
+			NRF_LOG_INFO("stimulate (%hx): write value %lu\n", event->uuid.uuid, value_data);
 			stimulate_service_on_gatts_write_round_params();
 			break;
 
@@ -322,12 +335,12 @@ static void stimulate_service_on_gatts_write_event(ble_gatts_evt_write_t* event)
 		case 0x0005:
 		case 0x0006:
 		case 0x0007:
-			printf("stimulate (%hx): write value %lu\n", event->context.char_uuid.uuid, *((uint32_t*)event->data));
+			NRF_LOG_INFO("stimulate (%hx): write value %lu\n", event->uuid.uuid, value_data);
 			stimulate_service_on_gatts_write_pulse_params();
 			break;
 
 		case 0x0008:
-			printf("stimulate (%hx): write value %lu\n", event->context.char_uuid.uuid, *((uint32_t*)event->data));
+			NRF_LOG_INFO("stimulate (%hx): write value %lu\n", event->uuid.uuid, value_data);
 			break;
 	}
 }
@@ -404,7 +417,7 @@ static void round_start_on(void)
 	uint16_t timer_next_compare = round_compute_timer_compare(&train_timer_remaining);
 
 	// set timer configuration for generating pulse train
-	nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG(2);
+	nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
 	timer_cfg.mode = TIMER_MODE_MODE_Counter;
 	timer_cfg.p_context = round_start_off;
 
@@ -432,7 +445,7 @@ static void round_start_off(void)
 	uint16_t timer_next_compare = round_compute_timer_compare(&train_timer_remaining);
 
 	// set timer configuration for generating pause period
-	nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG(2);
+	nrf_drv_timer_config_t timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
 	timer_cfg.mode = TIMER_MODE_MODE_Timer;
 	timer_cfg.p_context = round_start_on;
 
@@ -737,7 +750,7 @@ void stimulate_measure_finish(void)
 		if(	(err_code != NRF_SUCCESS) &&
 			(err_code != NRF_ERROR_BUSY) &&
 			(err_code != NRF_ERROR_INVALID_STATE) &&
-			(err_code != BLE_ERROR_NO_TX_BUFFERS) &&
+			(err_code != BLE_ERROR_NO_TX_PACKETS) &&
 			(err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING))
 		{
 			APP_ERROR_HANDLER(err_code);
