@@ -7643,7 +7643,7 @@ new: Attribute TP_SIGNAL_NAME&lt;br&gt;
 </part>
 <part name="U$2" library="smartwatch" deviceset="SI1013" device=""/>
 <part name="P+2" library="SparkFun" deviceset="3.3V" device=""/>
-<part name="IC2" library="dan" deviceset="NRF52832" device=""/>
+<part name="IC2" library="dan" deviceset="NRF52832" device="" value="N52832 CIAAB0"/>
 <part name="C1" library="rcl" deviceset="C-EU" device="C0201" value="12pF"/>
 <part name="C2" library="rcl" deviceset="C-EU" device="C0201" value="12pF"/>
 <part name="GND4" library="supply1" deviceset="GND" device=""/>
