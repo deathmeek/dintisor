@@ -87,14 +87,18 @@ public class LookupActivity extends Activity {
         }
         final Map<String, String> datum = new HashMap<String, String>(2);
         datum.put("First Line", "First line of text");
-        datum.put("Second Line",address);
+        datum.put("Second Line", address);
         final boolean[] addToPatients = {false};
-        String pacientName = storage.getPacient(address);
-        if(pacientName != null){
+        try {
+            String pacientName = storage.getPacient(address);
+            if (pacientName == null) {
+                throw new Exception();
+            }
             datum.put("First Line", pacientName);//put name of the pacient
             addToPatients[0] = true;
-        } else {
+        } catch (Exception e){
             datum.put("First Line", name);
+            addToPatients[0] = false;
         }
         runOnUiThread(new Runnable() {
             @Override
@@ -102,9 +106,6 @@ public class LookupActivity extends Activity {
                 if(addToPatients[0]){
                     patients.add(datum);
                     patientsAdapter.notifyDataSetChanged();
-                } else {
-                    devices.add(datum);
-                    devicesAdapter.notifyDataSetChanged();
                 }
             }
         });

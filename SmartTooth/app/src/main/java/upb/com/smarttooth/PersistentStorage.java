@@ -12,9 +12,9 @@ public class PersistentStorage {
         pacientDeviceDB = pdmh.getWritableDatabase();
     }
 
-    public String getPacient(String mac) {
+    public String getPacient(String mac) throws android.database.CursorIndexOutOfBoundsException{
         Cursor resultSet = pacientDeviceDB.rawQuery("Select name from " +
-                PacientDeviceMappingHelper.tableName + " where mac == " + mac, null);
+                PacientDeviceMappingHelper.tableName + " where mac == \"" + mac + "\"", null);
         resultSet.moveToFirst();
         return resultSet.getString(0);
     }
