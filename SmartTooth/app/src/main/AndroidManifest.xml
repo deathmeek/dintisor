@@ -3,11 +3,13 @@
     package="adrian.upb.smarttooth">
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
-    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="true" />
 
     <application
         android:allowBackup="true"
@@ -16,10 +18,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name="upb.com.smarttooth.MainActivity"
+            android:name="upb.com.smarttooth.PatientViewActivity"
             android:label="SmartTooth"
             android:parentActivityName="upb.com.smarttooth.LookupActivity"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name="upb.com.smarttooth.LookupActivity"
             android:label="SmartTooth"
@@ -38,6 +40,9 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="upb.com.smarttooth.LookupActivity" />
         </activity>
+        <activity
+            android:name="upb.com.smarttooth.NewPatientViewActivity"
+            android:label="@string/title_activity_new_patient_view"></activity>
     </application>
 
 </manifest>

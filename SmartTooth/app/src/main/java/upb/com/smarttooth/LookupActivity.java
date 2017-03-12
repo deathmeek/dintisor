@@ -1,38 +1,40 @@
 package upb.com.smarttooth;
 
+import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.os.Bundle;
-import android.app.Activity;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import adrian.upb.smarttooth.R;
 
-public class LookupActivity extends Activity {
-    public static Tooth tooth;
-    ArrayList<String> macs = new ArrayList<String>();
-    List<Map<String, String>> patients = new ArrayList<Map<String, String>>();
-    List<Map<String, String>> devices = new ArrayList<Map<String, String>>();
+public class LookupActivity extends BaseSmartToothActivity {
+    List<Map<String, String>> patients = new ArrayList<>();
+    List<String> devices = new ArrayList<>();
 
     SimpleAdapter patientsAdapter;
-    SimpleAdapter devicesAdapter;
+    ArrayAdapter<String> devicesAdapter;
 
     PersistentStorage storage;
+
+    public static final String PATIENT_NAME = "PatientName";
+    public static final String MAC = "MAC";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Tooth.setActivity(this);
-        tooth = Tooth.getInstance();
+
+        TransientStorage.setTopMostActivity(this);
         storage = PersistentStorage.getInstance(this);
         setContentView(R.layout.activity_lookup);
         Button b = (Button) findViewById(R.id.button_beginScanning);
@@ -44,69 +46,82 @@ public class LookupActivity extends Activity {
         });
         patientsAdapter = new SimpleAdapter(this, patients,
                 android.R.layout.simple_list_item_2,
-                new String[] {"First Line", "Second Line" },
-                new int[] {android.R.id.text1, android.R.id.text2 });
+                new String[]{MAC, PATIENT_NAME},
+                new int[]{android.R.id.text1, android.R.id.text2});
         ListView lv = (ListView) findViewById(R.id.listView);
         lv.setAdapter(patientsAdapter);
 
-        devicesAdapter = new SimpleAdapter(this, devices,
-                android.R.layout.simple_list_item_2,
-                new String[] {"First Line", "Second Line" },
-                new int[] {android.R.id.text1, android.R.id.text2 });
+        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent = new Intent(LookupActivity.this, NewPatientViewActivity.class);
+                intent.putExtra("MAC", patients.get(position).get(MAC));
+                intent.putExtra("PatientName", patients.get(position).get(PATIENT_NAME));
+                startActivity(intent);
+            }
+        });
+
+
+        devicesAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, devices);
         ListView lv2 = (ListView) findViewById(R.id.listView2);
         lv2.setAdapter(devicesAdapter);
 
         lv2.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Map<String, String> item = devices.get(position);
-
-                Intent intent = new Intent(LookupActivity.this,NewPacient.class);
-                intent.putExtra("MAC", item.get("Second Line"));
+                Intent intent = new Intent(LookupActivity.this, NewPacient.class);
+                intent.putExtra("MAC", devices.get(position));
                 startActivity(intent);
             }
         });
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    while (true) {
+                        Thread.sleep(5000);
+                        updateListOfDevices();
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }).start();
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Tooth.setActivity(this);
-    }
-    @Override
-    protected void onPause() {
-        super.onPause();
-        tooth.stopScan();
-    }
+    public void updateListOfDevices() {
+        devices.clear();
+        patients.clear();
+        Map<String, String> patientsHash = PersistentStorage.getInstance(this).getPacients();
+        Log.e("ceva", patientsHash.toString());
+        for (BluetoothDevice b : TransientStorage.getDevices()) {
+            String mac = b.getAddress();
+            String patientName = patientsHash.get(mac);
+            if(patientName != null) {
+                HashMap<String, String> row = new HashMap<>(2);
+                row.put(PATIENT_NAME, patientName);
+                row.put(MAC, mac);
+                patients.add(row);
+                patientsHash.remove(mac);
+            } else {
+                devices.add(mac);
+            }
+        }
+        for (String mac : patientsHash.keySet()) {
+            String patientName = patientsHash.get(mac);
+            HashMap<String, String> row = new HashMap<>(2);
+            row.put(PATIENT_NAME, patientName);
+            row.put(MAC, mac);
+            patients.add(row);
+        }
 
-    public void addDevice(String name, String address) {
-        for(String s : macs){
-            if (address.equals(s)) {
-                return;
-            }
-        }
-        final Map<String, String> datum = new HashMap<String, String>(2);
-        datum.put("First Line", "First line of text");
-        datum.put("Second Line", address);
-        final boolean[] addToPatients = {false};
-        try {
-            String pacientName = storage.getPacient(address);
-            if (pacientName == null) {
-                throw new Exception();
-            }
-            datum.put("First Line", pacientName);//put name of the pacient
-            addToPatients[0] = true;
-        } catch (Exception e){
-            datum.put("First Line", name);
-            addToPatients[0] = false;
-        }
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if(addToPatients[0]){
-                    patients.add(datum);
-                    patientsAdapter.notifyDataSetChanged();
-                }
+                devicesAdapter.notifyDataSetChanged();
+                patientsAdapter.notifyDataSetChanged();
             }
         });
     }

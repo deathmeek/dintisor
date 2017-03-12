@@ -124,7 +124,7 @@ public class DataFrame extends ChartHelper{
                 return;
 
             graph.zoomIn();
-            Tooth.getActivity().runOnUiThread(new Runnable() {
+            TransientStorage.getTopMostActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     graph.repaint();

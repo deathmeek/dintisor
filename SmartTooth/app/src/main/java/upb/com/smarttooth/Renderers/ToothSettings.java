@@ -1,8 +1,5 @@
 package upb.com.smarttooth.Renderers;
 
-import android.bluetooth.BluetoothA2dp;
-import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCharacteristic;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -14,12 +11,10 @@ import android.widget.TextView;
 
 import com.github.aakira.expandablelayout.ExpandableRelativeLayout;
 
-import java.util.zip.Adler32;
-
 import adrian.upb.smarttooth.R;
 import upb.com.smarttooth.Config;
-import upb.com.smarttooth.MainActivity;
 import upb.com.smarttooth.Tooth;
+import upb.com.smarttooth.TransientStorage;
 
 public class ToothSettings implements Renderer {
     EditText Ta;
@@ -203,7 +198,7 @@ public class ToothSettings implements Renderer {
     }
 
     public void update(final int id, final int value) {
-        Tooth.getActivity().runOnUiThread(new Runnable() {
+        TransientStorage.getTopMostActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 if(id == R.id.button_start){

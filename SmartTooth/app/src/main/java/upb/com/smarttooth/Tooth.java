@@ -1,58 +1,39 @@
 package upb.com.smarttooth;
 
-import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.util.Log;
-import android.view.View;
-import android.widget.EditText;
-import android.widget.Toast;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import adrian.upb.smarttooth.R;
 import upb.com.smarttooth.Renderers.ToothSettings;
 
-public class Tooth{
-    private final ToothWatchDog watchdog;
-    private static Activity activity;
-
-    public static Activity getActivity() {
-        return activity;
-    }
-
-    public static void setActivity(Activity a){
-        activity = a;
-    }
+public class Tooth {
 
     public void startScan() {
         try {
-            bluetoothAdapter.stopLeScan(cbScan);
+            bluetoothAdapter.stopLeScan(cbLocate);
         } catch (Exception e) {
 
         }
-        bluetoothAdapter.startLeScan(cbScan);
+        bluetoothAdapter.startLeScan(cbLocate);
     }
 
     public void stopScan() {
-        bluetoothAdapter.stopLeScan(cbScan);
+        bluetoothAdapter.stopLeScan(cbLocate);
     }
 
-    public class CharacWrapper{
+    public class CharacWrapper {
         boolean write;
         BluetoothGattCharacteristic c;
         public int value;
@@ -60,7 +41,6 @@ public class Tooth{
 
     static public boolean online;
     private BluetoothAdapter bluetoothAdapter;
-    int REQUEST_ENABLE_BT = 5;
     BluetoothGatt bluetoothGatt;
     public BluetoothGattCharacteristic phCharac;
     public BluetoothGattCharacteristic humCharac;
@@ -80,53 +60,22 @@ public class Tooth{
 
     private static Tooth instance;
     public final DataFrame dataFrame;
-    BluetoothDevice foundDevice = null;
-    String TargetMAC = null;
     BluetoothAdapter.LeScanCallback cbLocate = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
             Log.d("BluetoothLocate", "device found - " + device.getAddress() + ", "
                     + device.getName() + ", " + Arrays.toString(device.getUuids()));
 
-            if (foundDevice != null) {
-                Log.d("BluetoothLocate", "device already found");
-                return;
-            }
-
-            if (!TargetMAC.contains(device.getAddress())) {
+            if (!Config.TOOTH_MACs.contains(device.getAddress())) {
                 Log.d("BluetoothLocate", "device not in list - " + Config.TOOTH_MACs.toString());
                 return;
             }
 
-            foundDevice = device;
+            TransientStorage.addDevice(device);
 
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(getActivity(), "Got a device " + device.getAddress(), Toast.LENGTH_LONG).show();
-                    if(getActivity() instanceof LookupActivity){
-                        Intent intent = new Intent(getActivity(), MainActivity.class);
-                        getActivity().startActivity(intent);
-                    }
-                }
-            });
+            //bluetoothAdapter.stopLeScan(this);
 
-            bluetoothAdapter.stopLeScan(this);
-
-            bluetoothGatt = device.connectGatt(getActivity(), false, btleGattCallback);
-        }
-    };
-    BluetoothAdapter.LeScanCallback cbScan = new BluetoothAdapter.LeScanCallback() {
-        @Override
-        public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
-            Log.d("BluetoothScan", "device found - " + device.getAddress() + ", "
-                    + device.getName() + ", " + Arrays.toString(device.getUuids()));
-
-            if(Config.TOOTH_MACs.contains(device.getAddress())){
-                //TODO if the UUIDS are what we expect
-                LookupActivity a = (LookupActivity) getActivity();
-                a.addDevice(device.getName(), device.getAddress());
-            }
+            //bluetoothGatt = device.connectGatt(getActivity(), false, btleGattCallback);
         }
     };
 
@@ -138,24 +87,13 @@ public class Tooth{
 
         }
         Log.i("Smartooth", "Scanning started");
-        foundDevice = null;
         bluetoothAdapter.startLeScan(cbLocate);
     }
 
     private Tooth() {
         instance = this;
-        this.watchdog = new ToothWatchDog(5000);
         dataFrame = new DataFrame(new String[]{"PH", "Humidity"}, null, true);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            activity.startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-        if (!activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            Toast.makeText(activity, "BLE not supported", Toast.LENGTH_SHORT).show();
-            //TODO display more persistent error
-            return;
-        }
         // start a thread to schedule reads
         new Thread(new Runnable() {
             @Override
@@ -164,7 +102,7 @@ public class Tooth{
                     try {
                         Thread.sleep(Config.READ_INTERVAL);
                         if (bluetoothGatt != null) {
-                            if(real_time_enabled) {
+                            if (real_time_enabled) {
                                 if (phCharac != null) {
                                     enqueueRead(phCharac);
                                 }
@@ -183,7 +121,7 @@ public class Tooth{
     }
 
     public static Tooth getInstance() {
-        if(instance == null){
+        if (instance == null) {
             instance = new Tooth();
         }
         return instance;
@@ -210,8 +148,8 @@ public class Tooth{
             // this will get called anytime you perform a read or write characteristic operation
             //watchdog.reset();
             CharacWrapper dr = null;
-            for(CharacWrapper cw : map){
-                if(cw.c == characteristic && !cw.write){
+            for (CharacWrapper cw : map) {
+                if (cw.c == characteristic && !cw.write) {
                     dr = cw;
                 }
             }
@@ -242,7 +180,7 @@ public class Tooth{
             Tooth.online = newState == BluetoothProfile.STATE_CONNECTED;
             if (Tooth.online) {
                 gatt.discoverServices();
-                getActivity().runOnUiThread(new Runnable() {
+                TransientStorage.getTopMostActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         try {
@@ -254,7 +192,7 @@ public class Tooth{
                 });
 
             } else {
-                getActivity().runOnUiThread(new Runnable() {
+                TransientStorage.getTopMostActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         try {
@@ -403,6 +341,7 @@ public class Tooth{
         }
         return BluetoothGattCharacteristic.FORMAT_UINT8;
     }
+
     public void enqueueWrite(int id, int val) {
         BluetoothGattCharacteristic charac = remap(id);
         Log.e("ceva", "enqueueWrite " + val);
@@ -425,6 +364,7 @@ public class Tooth{
         BluetoothGattCharacteristic charac = remap(id);
         enqueueRead(charac);
     }
+
     private void enqueueRead(BluetoothGattCharacteristic charac) {
         synchronized (map) {
             if (map.isEmpty()) {
@@ -438,6 +378,7 @@ public class Tooth{
             map.add(cw);
         }
     }
+
     private BluetoothGattCharacteristic remap(int id) {
         switch (id) {
             case R.id.button_start: {

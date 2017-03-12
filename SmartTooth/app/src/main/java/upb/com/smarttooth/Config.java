@@ -3,7 +3,6 @@ package upb.com.smarttooth;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.HashSet;
-import java.util.UUID;
 
 public class Config {
     public static final HashSet<String> TOOTH_MACs = new HashSet<String>();

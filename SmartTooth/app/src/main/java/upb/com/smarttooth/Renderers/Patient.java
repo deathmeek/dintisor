@@ -14,8 +14,8 @@ import org.achartengine.ChartFactory;
 
 import adrian.upb.smarttooth.R;
 import upb.com.smarttooth.Config;
-import upb.com.smarttooth.MainActivity;
 import upb.com.smarttooth.Tooth;
+import upb.com.smarttooth.TransientStorage;
 
 public class Patient implements Renderer {
     @Override
@@ -51,7 +51,7 @@ public class Patient implements Renderer {
                                     } catch (InterruptedException e) {
                                         e.printStackTrace();
                                     }
-                                    Tooth.getActivity().runOnUiThread(new Runnable() {
+                                    TransientStorage.getTopMostActivity().runOnUiThread(new Runnable() {
                                         @Override
                                         public void run() {
                                             Tooth.getInstance().dataFrame.graph.repaint();
