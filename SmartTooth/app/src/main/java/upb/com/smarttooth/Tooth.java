@@ -16,7 +16,9 @@ import java.util.List;
 import java.util.Set;
 
 import adrian.upb.smarttooth.R;
-import upb.com.smarttooth.Renderers.ToothSettings;
+import upb.com.smarttooth.UI.fragments.ToothSettings;
+import upb.com.smarttooth.chart.DataFrame;
+import upb.com.smarttooth.storage.TransientStorage;
 
 public class Tooth {
 

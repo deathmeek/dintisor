@@ -1,4 +1,4 @@
-package upb.com.smarttooth;
+package upb.com.smarttooth.UI;
 
 import android.Manifest;
 import android.app.Activity;
@@ -10,6 +10,9 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.widget.Toast;
+
+import upb.com.smarttooth.Tooth;
+import upb.com.smarttooth.storage.TransientStorage;
 
 public abstract class BaseSmartToothActivity extends Activity {
 

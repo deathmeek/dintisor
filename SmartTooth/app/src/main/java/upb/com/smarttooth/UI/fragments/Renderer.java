@@ -1,4 +1,4 @@
-package upb.com.smarttooth.Renderers;
+package upb.com.smarttooth.UI.fragments;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -13,4 +13,6 @@ public interface Renderer {
     boolean onOptionsItemSelected(MenuItem item);
 
     String getTitle();
+
+    int getMenu();
 }

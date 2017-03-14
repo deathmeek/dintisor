@@ -1,4 +1,4 @@
-package upb.com.smarttooth;
+package upb.com.smarttooth.chart;
 
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -13,6 +13,9 @@ import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import upb.com.smarttooth.Config;
+import upb.com.smarttooth.storage.TransientStorage;
 
 public class DataFrame extends ChartHelper{
 

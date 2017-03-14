@@ -14,45 +14,19 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="NumePacient"/>
-    <com.github.aakira.expandablelayout.ExpandableRelativeLayout
-        android:id="@+id/expandableLayout_pacient"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_below="@+id/textView_pacientName"
-        app:ael_duration="1000"
-        app:ael_interpolator="decelerate">
-        <TextView
-            android:id="@+id/textView_patientDetails"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Mai Mult Pacient"/>
-    </com.github.aakira.expandablelayout.ExpandableRelativeLayout>
 
     <TextView
         android:id="@+id/textView_device"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/expandableLayout_pacient"
+        android:layout_below="@+id/textView_pacientName"
         android:text="Device"/>
-    <com.github.aakira.expandablelayout.ExpandableRelativeLayout
-        android:id="@+id/expandableLayout_device"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_below="@+id/textView_device"
-        app:ael_duration="1000"
-        app:ael_interpolator="decelerate">
-        <TextView
-            android:id="@+id/textView_deviceDetails"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Mai Mult Device"/>
-    </com.github.aakira.expandablelayout.ExpandableRelativeLayout>
 
     <TextView
         android:id="@+id/textView_realTimeData"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/expandableLayout_device"
+        android:layout_below="@+id/textView_device"
         android:text="Real Time Data"/>
     <com.github.aakira.expandablelayout.ExpandableRelativeLayout
         android:id="@+id/expandableLayout_rtData"

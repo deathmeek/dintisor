@@ -1,6 +1,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="upb.com.smarttooth.NewPatientViewActivity">
+    tools:context="upb.com.smarttooth.UI.PatientActivity">
     <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"

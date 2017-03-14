@@ -20,10 +20,10 @@
         <activity
             android:name="upb.com.smarttooth.PatientViewActivity"
             android:label="SmartTooth"
-            android:parentActivityName="upb.com.smarttooth.LookupActivity"
+            android:parentActivityName="upb.com.smarttooth.UI.LookupActivity"
             android:screenOrientation="portrait" />
         <activity
-            android:name="upb.com.smarttooth.LookupActivity"
+            android:name="upb.com.smarttooth.UI.LookupActivity"
             android:label="SmartTooth"
             android:screenOrientation="portrait">
             <intent-filter>
@@ -33,15 +33,15 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="upb.com.smarttooth.NewPacient"
+            android:name="upb.com.smarttooth.UI.CreatePacientActivity"
             android:label="@string/title_activity_new_pacient"
-            android:parentActivityName="upb.com.smarttooth.LookupActivity">
+            android:parentActivityName="upb.com.smarttooth.UI.LookupActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="upb.com.smarttooth.LookupActivity" />
+                android:value="upb.com.smarttooth.UI.LookupActivity" />
         </activity>
         <activity
-            android:name="upb.com.smarttooth.NewPatientViewActivity"
+            android:name="upb.com.smarttooth.UI.PatientActivity"
             android:label="@string/title_activity_new_patient_view"></activity>
     </application>
 

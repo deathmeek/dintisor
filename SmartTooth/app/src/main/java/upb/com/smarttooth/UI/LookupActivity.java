@@ -1,4 +1,4 @@
-package upb.com.smarttooth;
+package upb.com.smarttooth.UI;
 
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 import adrian.upb.smarttooth.R;
+import upb.com.smarttooth.storage.PersistentStorage;
+import upb.com.smarttooth.storage.TransientStorage;
 
 public class LookupActivity extends BaseSmartToothActivity {
     List<Map<String, String>> patients = new ArrayList<>();
@@ -54,7 +56,7 @@ public class LookupActivity extends BaseSmartToothActivity {
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent intent = new Intent(LookupActivity.this, NewPatientViewActivity.class);
+                Intent intent = new Intent(LookupActivity.this, PatientActivity.class);
                 intent.putExtra("MAC", patients.get(position).get(MAC));
                 intent.putExtra("PatientName", patients.get(position).get(PATIENT_NAME));
                 startActivity(intent);
@@ -69,7 +71,7 @@ public class LookupActivity extends BaseSmartToothActivity {
         lv2.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent intent = new Intent(LookupActivity.this, NewPacient.class);
+                Intent intent = new Intent(LookupActivity.this, CreatePacientActivity.class);
                 intent.putExtra("MAC", devices.get(position));
                 startActivity(intent);
             }

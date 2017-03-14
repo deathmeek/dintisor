@@ -7,7 +7,7 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="upb.com.smarttooth.NewPacient">
+    tools:context="upb.com.smarttooth.UI.CreatePacientActivity">
 
     <Button
         android:layout_width="wrap_content"
@@ -38,6 +38,6 @@
         android:layout_height="wrap_content"
         android:text="New Text"
         android:id="@+id/textView_MAC"
-        android:layout_below="@+id/editText"
+        android:layout_below="@+id/editText_pacient"
         android:layout_alignParentStart="true" />
 </RelativeLayout>

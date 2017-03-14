@@ -1,8 +1,10 @@
-package upb.com.smarttooth;
+package upb.com.smarttooth.chart;
 
 import java.text.FieldPosition;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
+
+import upb.com.smarttooth.Config;
 
 class XNumberFormat extends NumberFormat {
 

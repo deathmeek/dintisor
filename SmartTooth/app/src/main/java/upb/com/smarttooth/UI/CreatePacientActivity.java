@@ -1,6 +1,5 @@
-package upb.com.smarttooth;
+package upb.com.smarttooth.UI;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -10,13 +9,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import adrian.upb.smarttooth.R;
+import upb.com.smarttooth.storage.PersistentStorage;
 
-public class NewPacient extends Activity {
+public class CreatePacientActivity extends BaseSmartToothActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_new_pacient);
+        setContentView(R.layout.activity_create_pacient);
         getActionBar().setDisplayHomeAsUpEnabled(true);
         Intent i = getIntent();
 
@@ -30,9 +30,9 @@ public class NewPacient extends Activity {
             public void onClick(View v) {
                 String pacientName = String.valueOf(et.getText());
                 if (et.equals("")) {
-                    Toast.makeText(NewPacient.this, "Please enter a pacient name", Toast.LENGTH_SHORT);
+                    Toast.makeText(CreatePacientActivity.this, "Please enter a pacient name", Toast.LENGTH_SHORT);
                 } else {
-                    PersistentStorage.getInstance(NewPacient.this).createPacient(pacientName, mac);
+                    PersistentStorage.getInstance(CreatePacientActivity.this).createPacient(pacientName, mac);
                     finish();
                 }
             }

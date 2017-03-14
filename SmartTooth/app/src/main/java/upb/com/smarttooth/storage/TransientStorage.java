@@ -1,4 +1,4 @@
-package upb.com.smarttooth;
+package upb.com.smarttooth.storage;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;

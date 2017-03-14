@@ -1,4 +1,4 @@
-package upb.com.smarttooth.Renderers;
+package upb.com.smarttooth.UI.fragments;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -14,7 +14,7 @@ import com.github.aakira.expandablelayout.ExpandableRelativeLayout;
 import adrian.upb.smarttooth.R;
 import upb.com.smarttooth.Config;
 import upb.com.smarttooth.Tooth;
-import upb.com.smarttooth.TransientStorage;
+import upb.com.smarttooth.storage.TransientStorage;
 
 public class ToothSettings implements Renderer {
     EditText Ta;
@@ -42,6 +42,11 @@ public class ToothSettings implements Renderer {
                 return "Waveform Settings";
         }
         return null;
+    }
+
+    @Override
+    public int getMenu() {
+        return R.menu.tooth_settings;
     }
 
     private void updateT14(EditText e){

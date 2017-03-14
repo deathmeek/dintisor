@@ -1,4 +1,4 @@
-package upb.com.smarttooth;
+package upb.com.smarttooth.storage;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;

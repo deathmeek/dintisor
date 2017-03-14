@@ -1,4 +1,4 @@
-package upb.com.smarttooth.Renderers;
+package upb.com.smarttooth.UI.fragments;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -15,15 +15,15 @@ import org.achartengine.ChartFactory;
 import adrian.upb.smarttooth.R;
 import upb.com.smarttooth.Config;
 import upb.com.smarttooth.Tooth;
-import upb.com.smarttooth.TransientStorage;
+import upb.com.smarttooth.storage.TransientStorage;
 
 public class Patient implements Renderer {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState){
         final View rootView = inflater.inflate(R.layout.fragment_pacient, container, false);
-        final int[] titles = new int[]{R.id.textView_pacientName, R.id.textView_device, R.id.textView_realTimeData, R.id.textView_pastData};
-        final int[] expandableLayoutsID = new int[]{R.id.expandableLayout_pacient, R.id.expandableLayout_device, R.id.expandableLayout_rtData, R.id.expandableLayout_pastData};
+        final int[] titles = new int[]{R.id.textView_realTimeData, R.id.textView_pastData};
+        final int[] expandableLayoutsID = new int[]{R.id.expandableLayout_rtData, R.id.expandableLayout_pastData};
         final ExpandableRelativeLayout[] expandableLayouts = new ExpandableRelativeLayout[expandableLayoutsID.length];
         for(int i = 0; i < expandableLayoutsID.length; i++) {
             expandableLayouts[i] = (ExpandableRelativeLayout) rootView.findViewById(expandableLayoutsID[i]);
@@ -93,6 +93,12 @@ public class Patient implements Renderer {
                 return "Patient";
         }
         return null;
+    }
+
+    @Override
+    public int getMenu() {
+        // no menu
+        return 0;
     }
 
 }
