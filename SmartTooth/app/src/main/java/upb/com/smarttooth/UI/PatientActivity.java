@@ -14,7 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import adrian.upb.smarttooth.R;
-import upb.com.smarttooth.UI.fragments.Patient;
+import upb.com.smarttooth.UI.fragments.PatientGraph;
 import upb.com.smarttooth.UI.fragments.Renderer;
 import upb.com.smarttooth.UI.fragments.ToothSettings;
 
@@ -36,7 +36,7 @@ public class PatientActivity extends BaseSmartToothActivity
     private ViewPager mViewPager;
 
     static {
-        Renderer[] r = renderers = new Renderer[]{new Patient(), new ToothSettings()};
+        Renderer[] r = renderers = new Renderer[]{new PatientGraph(), new ToothSettings()};
         String[] p = pagini = new String[r.length];
         int[] m = menus = new int[r.length];
         for (int i = 0; i < r.length; i++) {

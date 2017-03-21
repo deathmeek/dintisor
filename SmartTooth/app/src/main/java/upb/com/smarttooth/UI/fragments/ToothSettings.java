@@ -9,8 +9,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.github.aakira.expandablelayout.ExpandableRelativeLayout;
-
 import adrian.upb.smarttooth.R;
 import upb.com.smarttooth.Config;
 import upb.com.smarttooth.Tooth;
@@ -185,15 +183,11 @@ public class ToothSettings implements Renderer {
         });
         return rootView;
     }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.menu_adv){
-            final int[] expandableLayoutsID = new int[]{R.id.expandableLayout_T2, R.id.expandableLayout_T4};
-            final ExpandableRelativeLayout[] expandableLayouts = new ExpandableRelativeLayout[expandableLayoutsID.length];
-            for (int i = 0; i < expandableLayoutsID.length; i++) {
-                expandableLayouts[i] = (ExpandableRelativeLayout) rootView.findViewById(expandableLayoutsID[i]);
-                expandableLayouts[i].toggle();
-            }
+
         }
         else
         {
