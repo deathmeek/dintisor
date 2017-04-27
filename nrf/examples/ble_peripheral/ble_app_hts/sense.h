@@ -17,8 +17,9 @@ ble_uuid_t service_uuid;
 
 void sense_service_init(void);
 void sense_on_ble_event(ble_evt_t* event);
-void sense_measurement_start(void);
-void sense_measurement_finish(void);
+
+void sense_measurement_init(void);
+void sense_measurement_sample(int16_t sample);
 
 
 #endif /* DINTISOR_SENSE_H_ */

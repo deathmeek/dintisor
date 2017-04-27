@@ -9,6 +9,7 @@
 #include <ble_bas.h>
 
 #include <nrf.h>
+#include <nrf_drv_adc.h>
 #include <nrf_soc.h>
 
 #include <stdint.h>
@@ -52,32 +53,27 @@ void battery_service_process_event(ble_evt_t* event)
 }
 
 /**
- * @brief Configure ADC for battery measurement and start conversion.
+ * @brief Configure hardware for battery measurement.
  */
-void battery_measurement_start(void)
+void battery_measurement_init(void)
 {
-	NRF_ADC->CONFIG	=	(ADC_CONFIG_RES_8bit << ADC_CONFIG_RES_Pos) |
-						(ADC_CONFIG_INPSEL_SupplyOneThirdPrescaling << ADC_CONFIG_INPSEL_Pos) |
-						(ADC_CONFIG_REFSEL_VBG << ADC_CONFIG_REFSEL_Pos) |
-						(ADC_CONFIG_PSEL_Disabled << ADC_CONFIG_PSEL_Pos) |
-						(ADC_CONFIG_EXTREFSEL_None << ADC_CONFIG_EXTREFSEL_Pos);
-
-	// ADC needs high freq clock?
-	sd_clock_hfclk_request();
-
-	uint32_t is_running = 0;
-	while(!is_running)
-		sd_clock_hfclk_is_running(&is_running);
-
-	NRF_ADC->TASKS_START = 1;
+	static nrf_drv_adc_channel_t channel = {
+			.config.config = {
+				.resolution = NRF_ADC_CONFIG_RES_8BIT,
+				.input = NRF_ADC_CONFIG_SCALING_SUPPLY_ONE_THIRD,
+				.reference = NRF_ADC_CONFIG_REF_VBG,
+				.ain = NRF_ADC_CONFIG_INPUT_DISABLED,
+			},
+	};
+	nrf_drv_adc_channel_enable(&channel);
 }
 
 /**
  * @brief Get VDD voltage and update battery level.
  */
-void battery_measurement_finish(void)
+void battery_measurement_sample(int16_t sample)
 {
-	uint8_t new_level = NRF_ADC->RESULT * 100 / 255;
+	uint8_t new_level = sample * 100 / 255;
 
 	uint32_t err_code = ble_bas_battery_level_update(&service, new_level);
 	if(	(err_code != NRF_SUCCESS) &&
@@ -87,9 +83,4 @@ void battery_measurement_finish(void)
 	{
 		APP_ERROR_HANDLER(err_code);
 	}
-
-	// use the STOP task to save energy; workaround for PAN_028 rev1.5 anomaly 1?
-	NRF_ADC->TASKS_STOP = 1;
-
-	sd_clock_hfclk_release();
 }

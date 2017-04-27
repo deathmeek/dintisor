@@ -23,6 +23,7 @@
 #include "app_error.h"
 #include "app_util_platform.h"
 #include "nrf_gpio.h"
+#include "nrf_drv_adc.h"
 #include "ble.h"
 #include "ble_hci.h"
 #include "ble_srv_common.h"
@@ -101,6 +102,7 @@ static ble_uuid_t m_adv_uuids[] =       {{BLE_UUID_BATTERY_SERVICE, BLE_UUID_TYP
                                         {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}};  /**< Universally unique service identifiers. */
 
 static void advertising_start(void);
+static void adc_event_handler(nrf_drv_adc_evt_t const *);
 
 
 /**@brief Function for error handling, which is called when an error has occurred.
@@ -282,16 +284,18 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
 
 
 /**
- * @brief Init common ADC parameters.
+ * @brief Init measurement hardware.
  */
-static void adc_init(void)
+static void measurement_init(void)
 {
-    sd_nvic_SetPriority(ADC_IRQn, APP_IRQ_PRIORITY_LOW);
-    sd_nvic_EnableIRQ(ADC_IRQn);
+	ret_code_t err_code;
 
-    NRF_ADC->INTENSET   = (ADC_INTENSET_END_Enabled << ADC_INTENSET_END_Pos);
+	err_code = nrf_drv_adc_init(NULL, adc_event_handler);
+	APP_ERROR_CHECK(err_code);
 
-    NRF_ADC->ENABLE     = (ADC_ENABLE_ENABLE_Enabled << ADC_ENABLE_ENABLE_Pos);
+	battery_measurement_init();
+	sense_measurement_init();
+	stimulate_measurement_init();
 }
 
 /**
@@ -306,37 +310,52 @@ static void battery_level_meas_timeout_handler(void * p_context)
 {
     UNUSED_PARAMETER(p_context);
 
-    battery_measurement_start();
+    ret_code_t err_code;
+
+    static nrf_adc_value_t sample_buffer[3];
+    err_code = nrf_drv_adc_buffer_convert(sample_buffer, 3);
+    APP_ERROR_CHECK(err_code);
+
+    nrf_drv_adc_sample();
 }
 
 /**
- * @brief ADC interrupt handler
+ * @brief ADC event handler
  */
-void ADC_IRQHandler(void)
+static void adc_event_handler(nrf_drv_adc_evt_t const *event)
 {
-    NRF_ADC->EVENTS_END = 0;
+	nrf_adc_value_t* sample_buffer;
+	uint16_t sample_count;
 
-    static uint8_t state = 0;
+	switch(event->type)
+	{
+		case NRF_DRV_ADC_EVT_DONE:
+			sample_buffer = event->data.done.p_buffer;
+			sample_count = event->data.done.size;
 
-    switch(state)
-    {
-        case 0:
-            battery_measurement_finish();
-            sense_measurement_start();
-            state = 1;
-            break;
+			if(sample_count > 0)
+			{
+				battery_measurement_sample(*sample_buffer);
+				sample_buffer++;
+				sample_count--;
+			}
+			if(sample_count > 0)
+			{
+				sense_measurement_sample(*sample_buffer);
+				sample_buffer++;
+				sample_count--;
+			}
+			if(sample_count > 0)
+			{
+				stimulate_measurement_sample(*sample_buffer);
+				sample_buffer++;
+				sample_count--;
+			}
+			break;
 
-        case 1:
-            sense_measurement_finish();
-            stimulate_measure_start();
-            state = 2;
-            break;
-
-        case 2:
-            stimulate_measure_finish();
-            state = 0;
-            break;
-    }
+		default:
+			break;
+	}
 }
 
 /**@brief Function for the Timer initialization.
@@ -907,7 +926,7 @@ int main(void)
     stimulate_service_init();
     advertising_init();
     services_init();
-    adc_init();
+    measurement_init();
     conn_params_init();
 
     // Start execution.

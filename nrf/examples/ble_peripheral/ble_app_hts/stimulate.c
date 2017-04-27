@@ -6,6 +6,7 @@
  */
 
 #include <nrf.h>
+#include <nrf_drv_adc.h>
 #include <nrf_drv_gpiote.h>
 #include <nrf_drv_ppi.h>
 #include <nrf_drv_timer.h>
@@ -719,27 +720,22 @@ static uint16_t pulse_compute_timer_compare(uint32_t* value)
 	return *value / min_value;
 }
 
-void stimulate_measure_start(void)
+void stimulate_measurement_init(void)
 {
-	NRF_ADC->CONFIG	=	(ADC_CONFIG_RES_10bit << ADC_CONFIG_RES_Pos) |
-						(ADC_CONFIG_INPSEL_AnalogInputOneThirdPrescaling << ADC_CONFIG_INPSEL_Pos) |
-						(ADC_CONFIG_REFSEL_VBG << ADC_CONFIG_REFSEL_Pos) |
-						(ADC_CONFIG_PSEL_AnalogInput3 << ADC_CONFIG_PSEL_Pos) |
-						(ADC_CONFIG_EXTREFSEL_None << ADC_CONFIG_EXTREFSEL_Pos);
-
-	// ADC needs high freq clock?
-	sd_clock_hfclk_request();
-
-	uint32_t is_running = 0;
-	while(!is_running)
-		sd_clock_hfclk_is_running(&is_running);
-
-	NRF_ADC->TASKS_START = 1;
+	static nrf_drv_adc_channel_t channel = {
+			.config.config = {
+				.resolution = NRF_ADC_CONFIG_RES_10BIT,
+				.input = NRF_ADC_CONFIG_SCALING_INPUT_ONE_THIRD,
+				.reference = NRF_ADC_CONFIG_REF_VBG,
+				.ain = NRF_ADC_CONFIG_INPUT_3,
+			},
+	};
+	nrf_drv_adc_channel_enable(&channel);
 }
 
-void stimulate_measure_finish(void)
+void stimulate_measurement_sample(int16_t sample)
 {
-	amplitude_value = NRF_ADC->RESULT * 12 * 3 * 1350 / 1024; // (x / 1024) * 1.2 * 3 * (15 / (15 + 1.2)) * 1000
+	amplitude_value = sample * 12 * 3 * 1350 / 1024; // (x / 1024) * 1.2 * 3 * (15 / (15 + 1.2)) * 1000
 
 	if(conn_handle != BLE_CONN_HANDLE_INVALID)
 	{
@@ -762,9 +758,4 @@ void stimulate_measure_finish(void)
 			APP_ERROR_HANDLER(err_code);
 		}
 	}
-
-	// use the STOP task to save energy; workaround for PAN_028 rev1.5 anomaly 1?
-	NRF_ADC->TASKS_STOP = 1;
-
-	sd_clock_hfclk_release();
 }

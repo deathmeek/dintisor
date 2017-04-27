@@ -16,8 +16,9 @@
 
 void battery_service_init(void);
 void battery_service_process_event(ble_evt_t* event);
-void battery_measurement_start(void);
-void battery_measurement_finish(void);
+
+void battery_measurement_init(void);
+void battery_measurement_sample(int16_t sample);
 
 
 #endif /* DINTISOR_BATTERY_H_ */
