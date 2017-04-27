@@ -23,6 +23,14 @@ environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030.1752759
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030.175275909/VERBOSE/value=1
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030.175275909/append=true
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030.175275909/appendContributed=true
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030.484702805/CROSS_COMPILE/delimiter=\:
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030.484702805/CROSS_COMPILE/operation=append
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030.484702805/CROSS_COMPILE/value=arm-none-eabi-
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030.484702805/VERBOSE/delimiter=\:
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030.484702805/VERBOSE/operation=replace
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030.484702805/VERBOSE/value=1
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030.484702805/append=true
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030.484702805/appendContributed=true
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030/CROSS_COMPILE/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030/CROSS_COMPILE/operation=append
 environment/project/cdt.managedbuild.toolchain.gnu.cross.base.1903879030/CROSS_COMPILE/value=arm-none-eabi-
