@@ -23,7 +23,9 @@
 #include "app_error.h"
 #include "app_util_platform.h"
 #include "nrf_gpio.h"
+#ifdef NRF51
 #include "nrf_drv_adc.h"
+#endif /* NRF51 */
 #include "ble.h"
 #include "ble_hci.h"
 #include "ble_srv_common.h"
@@ -102,7 +104,9 @@ static ble_uuid_t m_adv_uuids[] =       {{BLE_UUID_BATTERY_SERVICE, BLE_UUID_TYP
                                         {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}};  /**< Universally unique service identifiers. */
 
 static void advertising_start(void);
+#ifdef NRF51
 static void adc_event_handler(nrf_drv_adc_evt_t const *);
+#endif /* NRF51 */
 
 
 /**@brief Function for error handling, which is called when an error has occurred.
@@ -288,10 +292,12 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
  */
 static void measurement_init(void)
 {
+#ifdef NRF51
 	ret_code_t err_code;
 
 	err_code = nrf_drv_adc_init(NULL, adc_event_handler);
 	APP_ERROR_CHECK(err_code);
+#endif /* NRF51 */
 
 	battery_measurement_init();
 	sense_measurement_init();
@@ -310,6 +316,7 @@ static void battery_level_meas_timeout_handler(void * p_context)
 {
     UNUSED_PARAMETER(p_context);
 
+#ifdef NRF51
     ret_code_t err_code;
 
     static nrf_adc_value_t sample_buffer[3];
@@ -317,8 +324,10 @@ static void battery_level_meas_timeout_handler(void * p_context)
     APP_ERROR_CHECK(err_code);
 
     nrf_drv_adc_sample();
+#endif /* NRF51 */
 }
 
+#ifdef NRF51
 /**
  * @brief ADC event handler
  */
@@ -357,6 +366,7 @@ static void adc_event_handler(nrf_drv_adc_evt_t const *event)
 			break;
 	}
 }
+#endif /* NRF51 */
 
 /**@brief Function for the Timer initialization.
  *

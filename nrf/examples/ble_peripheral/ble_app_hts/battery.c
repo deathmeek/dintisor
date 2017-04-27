@@ -9,7 +9,9 @@
 #include <ble_bas.h>
 
 #include <nrf.h>
+#ifdef NRF51
 #include <nrf_drv_adc.h>
+#endif /* NRF51 */
 #include <nrf_soc.h>
 
 #include <stdint.h>
@@ -57,6 +59,7 @@ void battery_service_process_event(ble_evt_t* event)
  */
 void battery_measurement_init(void)
 {
+#ifdef NRF51
 	static nrf_drv_adc_channel_t channel = {
 			.config.config = {
 				.resolution = NRF_ADC_CONFIG_RES_8BIT,
@@ -66,6 +69,7 @@ void battery_measurement_init(void)
 			},
 	};
 	nrf_drv_adc_channel_enable(&channel);
+#endif /* NRF51 */
 }
 
 /**

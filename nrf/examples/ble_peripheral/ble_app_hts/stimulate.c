@@ -6,7 +6,9 @@
  */
 
 #include <nrf.h>
+#ifdef NRF51
 #include <nrf_drv_adc.h>
+#endif /* NRF51 */
 #include <nrf_drv_gpiote.h>
 #include <nrf_drv_ppi.h>
 #include <nrf_drv_timer.h>
@@ -722,6 +724,7 @@ static uint16_t pulse_compute_timer_compare(uint32_t* value)
 
 void stimulate_measurement_init(void)
 {
+#ifdef NRF51
 	static nrf_drv_adc_channel_t channel = {
 			.config.config = {
 				.resolution = NRF_ADC_CONFIG_RES_10BIT,
@@ -731,6 +734,7 @@ void stimulate_measurement_init(void)
 			},
 	};
 	nrf_drv_adc_channel_enable(&channel);
+#endif /* NRF51 */
 }
 
 void stimulate_measurement_sample(int16_t sample)
