@@ -44,6 +44,8 @@
   #include "arduino_primo.h"
 #elif defined(BOARD_SPARROW_BLE)
   #include "sparrow_ble.h"
+#elif defined(BOARD_TOOTH)
+  #include "tooth.h"
 #elif defined(BOARD_CUSTOM)
   #include "custom_board.h"
 #else

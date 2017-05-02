@@ -23,7 +23,12 @@
 #include "app_error.h"
 #include "app_util_platform.h"
 #include "nrf_gpio.h"
+#ifdef NRF51
 #include "nrf_drv_adc.h"
+#endif /* NRF51 */
+#ifdef NRF52
+#include "nrf_drv_saadc.h"
+#endif /* NRF52 */
 #include "ble.h"
 #include "ble_hci.h"
 #include "ble_srv_common.h"
@@ -102,7 +107,12 @@ static ble_uuid_t m_adv_uuids[] =       {{BLE_UUID_BATTERY_SERVICE, BLE_UUID_TYP
                                         {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}};  /**< Universally unique service identifiers. */
 
 static void advertising_start(void);
+#ifdef NRF51
 static void adc_event_handler(nrf_drv_adc_evt_t const *);
+#endif /* NRF51 */
+#ifdef NRF52
+static void adc_event_handler(nrf_drv_saadc_evt_t const *);
+#endif /* NRF52 */
 
 
 /**@brief Function for error handling, which is called when an error has occurred.
@@ -288,14 +298,24 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
  */
 static void measurement_init(void)
 {
+#ifdef NRF51
 	ret_code_t err_code;
 
 	err_code = nrf_drv_adc_init(NULL, adc_event_handler);
 	APP_ERROR_CHECK(err_code);
+#endif /* NRF51 */
 
-	battery_measurement_init();
-	sense_measurement_init();
-	stimulate_measurement_init();
+#ifdef NRF52
+	ret_code_t err_code;
+
+	err_code = nrf_drv_saadc_init(NULL, adc_event_handler);
+	APP_ERROR_CHECK(err_code);
+#endif /* NRF52 */
+
+	uint8_t free_adc_channel = 0;
+	free_adc_channel = battery_measurement_init(free_adc_channel);
+	free_adc_channel = sense_measurement_init(free_adc_channel);
+	free_adc_channel = stimulate_measurement_init(free_adc_channel);
 }
 
 /**
@@ -310,6 +330,7 @@ static void battery_level_meas_timeout_handler(void * p_context)
 {
     UNUSED_PARAMETER(p_context);
 
+#ifdef NRF51
     ret_code_t err_code;
 
     static nrf_adc_value_t sample_buffer[3];
@@ -317,8 +338,21 @@ static void battery_level_meas_timeout_handler(void * p_context)
     APP_ERROR_CHECK(err_code);
 
     nrf_drv_adc_sample();
+#endif /* NRF51 */
+
+#ifdef NRF52
+    ret_code_t err_code;
+
+    static nrf_saadc_value_t sample_buffer[3];
+    err_code = nrf_drv_saadc_buffer_convert(sample_buffer, 3);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = nrf_drv_saadc_sample();
+    APP_ERROR_CHECK(err_code);
+#endif /* NRF52 */
 }
 
+#ifdef NRF51
 /**
  * @brief ADC event handler
  */
@@ -357,6 +391,48 @@ static void adc_event_handler(nrf_drv_adc_evt_t const *event)
 			break;
 	}
 }
+#endif /* NRF51 */
+
+#ifdef NRF52
+/**
+ * @brief ADC event handler
+ */
+static void adc_event_handler(nrf_drv_saadc_evt_t const *event)
+{
+	nrf_saadc_value_t* sample_buffer;
+	uint16_t sample_count;
+
+	switch(event->type)
+	{
+		case NRF_DRV_SAADC_EVT_DONE:
+			sample_buffer = event->data.done.p_buffer;
+			sample_count = event->data.done.size;
+
+			if(sample_count > 0)
+			{
+				battery_measurement_sample(*sample_buffer);
+				sample_buffer++;
+				sample_count--;
+			}
+			if(sample_count > 0)
+			{
+				sense_measurement_sample(*sample_buffer);
+				sample_buffer++;
+				sample_count--;
+			}
+			if(sample_count > 0)
+			{
+				stimulate_measurement_sample(*sample_buffer);
+				sample_buffer++;
+				sample_count--;
+			}
+			break;
+
+		default:
+			break;
+	}
+}
+#endif /* NRF52 */
 
 /**@brief Function for the Timer initialization.
  *

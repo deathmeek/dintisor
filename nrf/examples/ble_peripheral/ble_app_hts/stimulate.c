@@ -6,7 +6,12 @@
  */
 
 #include <nrf.h>
+#ifdef NRF51
 #include <nrf_drv_adc.h>
+#endif /* NRF51 */
+#ifdef NRF52
+#include <nrf_drv_saadc.h>
+#endif /* NRF52 */
 #include <nrf_drv_gpiote.h>
 #include <nrf_drv_ppi.h>
 #include <nrf_drv_timer.h>
@@ -720,22 +725,47 @@ static uint16_t pulse_compute_timer_compare(uint32_t* value)
 	return *value / min_value;
 }
 
-void stimulate_measurement_init(void)
+uint8_t stimulate_measurement_init(uint8_t adc_channel)
 {
+#ifdef NRF51
 	static nrf_drv_adc_channel_t channel = {
 			.config.config = {
 				.resolution = NRF_ADC_CONFIG_RES_10BIT,
 				.input = NRF_ADC_CONFIG_SCALING_INPUT_ONE_THIRD,
-				.reference = NRF_ADC_CONFIG_REF_VBG,
+				.reference = NRF_ADC_CONFIG_REF_VBG,	// 1.2V
 				.ain = NRF_ADC_CONFIG_INPUT_3,
 			},
 	};
 	nrf_drv_adc_channel_enable(&channel);
+#endif /* NRF51 */
+
+#ifdef NRF52
+	static nrf_saadc_channel_config_t channel = {
+			.resistor_p = NRF_SAADC_RESISTOR_DISABLED,
+			.resistor_n = NRF_SAADC_RESISTOR_DISABLED,
+			.gain = NRF_SAADC_GAIN1_6,
+			.reference = NRF_SAADC_REFERENCE_INTERNAL,	// 0.6V
+			.acq_time = NRF_SAADC_ACQTIME_10US,
+			.mode = NRF_SAADC_MODE_SINGLE_ENDED,
+			.burst = NRF_SAADC_BURST_DISABLED,
+			.pin_p = NRF_SAADC_INPUT_VDD,
+			.pin_n = NRF_SAADC_INPUT_DISABLED,
+	};
+	nrf_drv_saadc_channel_init(adc_channel, &channel);
+#endif /* NRF52 */
+
+	return adc_channel + 1;
 }
 
 void stimulate_measurement_sample(int16_t sample)
 {
+#ifdef NRF51
 	amplitude_value = sample * 12 * 3 * 1350 / 1024; // (x / 1024) * 1.2 * 3 * (15 / (15 + 1.2)) * 1000
+#endif /* NRF51 */
+
+#ifdef NRF52
+	amplitude_value = sample * 6 * 6 * 100 / 1024; // (x / 1024) * 0.6 * 6 * 1000
+#endif /* NRF52 */
 
 	if(conn_handle != BLE_CONN_HANDLE_INVALID)
 	{

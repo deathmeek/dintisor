@@ -10,11 +10,13 @@
 
 #include <ble.h>
 
+#include <stdint.h>
+
 
 void stimulate_service_init(void);
 void stimulate_service_on_ble_event(ble_evt_t* event);
 
-void stimulate_measurement_init(void);
+uint8_t stimulate_measurement_init(uint8_t adc_channel);
 void stimulate_measurement_sample(int16_t sample);
 
 
