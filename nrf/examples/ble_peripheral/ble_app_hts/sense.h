@@ -11,6 +11,8 @@
 #include <ble.h>
 #include <ble_types.h>
 
+#include <stdint.h>
+
 
 ble_uuid_t service_uuid;
 
@@ -18,7 +20,7 @@ ble_uuid_t service_uuid;
 void sense_service_init(void);
 void sense_on_ble_event(ble_evt_t* event);
 
-void sense_measurement_init(void);
+uint8_t sense_measurement_init(uint8_t adc_channel);
 void sense_measurement_sample(int16_t sample);
 
 

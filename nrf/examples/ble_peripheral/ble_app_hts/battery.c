@@ -12,6 +12,9 @@
 #ifdef NRF51
 #include <nrf_drv_adc.h>
 #endif /* NRF51 */
+#ifdef NRF52
+#include <nrf_drv_saadc.h>
+#endif /* NRF52 */
 #include <nrf_soc.h>
 
 #include <stdint.h>
@@ -57,19 +60,36 @@ void battery_service_process_event(ble_evt_t* event)
 /**
  * @brief Configure hardware for battery measurement.
  */
-void battery_measurement_init(void)
+uint8_t battery_measurement_init(uint8_t adc_channel)
 {
 #ifdef NRF51
 	static nrf_drv_adc_channel_t channel = {
 			.config.config = {
 				.resolution = NRF_ADC_CONFIG_RES_8BIT,
 				.input = NRF_ADC_CONFIG_SCALING_SUPPLY_ONE_THIRD,
-				.reference = NRF_ADC_CONFIG_REF_VBG,
+				.reference = NRF_ADC_CONFIG_REF_VBG,	// 1.2V
 				.ain = NRF_ADC_CONFIG_INPUT_DISABLED,
 			},
 	};
 	nrf_drv_adc_channel_enable(&channel);
 #endif /* NRF51 */
+
+#ifdef NRF52
+	static nrf_saadc_channel_config_t channel = {
+			.resistor_p = NRF_SAADC_RESISTOR_DISABLED,
+			.resistor_n = NRF_SAADC_RESISTOR_DISABLED,
+			.gain = NRF_SAADC_GAIN1_6,
+			.reference = NRF_SAADC_REFERENCE_INTERNAL,	// 0.6V
+			.acq_time = NRF_SAADC_ACQTIME_10US,
+			.mode = NRF_SAADC_MODE_SINGLE_ENDED,
+			.burst = NRF_SAADC_BURST_DISABLED,
+			.pin_p = NRF_SAADC_INPUT_VDD,
+			.pin_n = NRF_SAADC_INPUT_DISABLED,
+	};
+	nrf_drv_saadc_channel_init(adc_channel, &channel);
+#endif /* NRF52 */
+
+	return adc_channel + 1;
 }
 
 /**
@@ -77,7 +97,15 @@ void battery_measurement_init(void)
  */
 void battery_measurement_sample(int16_t sample)
 {
-	uint8_t new_level = sample * 100 / 255;
+	uint8_t new_level;
+
+#ifdef NRF51
+	new_level = sample * 100 / 256;
+#endif /* NRF51 */
+
+#ifdef NRF52
+	new_level = sample * 100 / 1024;
+#endif /* NRF52 */
 
 	uint32_t err_code = ble_bas_battery_level_update(&service, new_level);
 	if(	(err_code != NRF_SUCCESS) &&
