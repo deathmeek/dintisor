@@ -321,9 +321,9 @@ static void measurement_init(void)
 
 	uint8_t first_adc_channel = 0;
 	uint8_t free_adc_channel = first_adc_channel;
-	free_adc_channel += battery_measurement_init(free_adc_channel);
-	free_adc_channel += sense_measurement_init(free_adc_channel);
-	free_adc_channel += stimulate_measurement_init(free_adc_channel);
+	free_adc_channel = battery_measurement_init(free_adc_channel);
+	free_adc_channel = sense_measurement_init(free_adc_channel);
+	free_adc_channel = stimulate_measurement_init(free_adc_channel);
 
 	measurement_count = free_adc_channel - first_adc_channel;
 

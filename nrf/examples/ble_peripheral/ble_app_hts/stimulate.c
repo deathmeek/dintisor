@@ -737,6 +737,7 @@ uint8_t stimulate_measurement_init(uint8_t adc_channel)
 			},
 	};
 	nrf_drv_adc_channel_enable(&channel);
+	adc_channel++;
 #endif /* NRF51 */
 
 #ifdef NRF52
@@ -751,10 +752,10 @@ uint8_t stimulate_measurement_init(uint8_t adc_channel)
 			.pin_p = NRF_SAADC_INPUT_VDD,
 			.pin_n = NRF_SAADC_INPUT_DISABLED,
 	};
-	nrf_drv_saadc_channel_init(adc_channel, &channel);
+	nrf_drv_saadc_channel_init(adc_channel++, &channel);
 #endif /* NRF52 */
 
-	return 1;
+	return adc_channel;
 }
 
 uint8_t stimulate_measurement_sample(int16_t* sample)
