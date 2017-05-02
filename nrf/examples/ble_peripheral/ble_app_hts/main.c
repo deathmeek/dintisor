@@ -293,10 +293,10 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
 }
 
 #ifdef NRF51
-static nrf_adc_value_t measurement_buffer[3];
+static nrf_adc_value_t measurement_buffer[4];
 #endif /* NRF51 */
 #ifdef NRF52
-static nrf_saadc_value_t measurement_buffer[3];
+static nrf_saadc_value_t measurement_buffer[4];
 #endif /* NRF52 */
 static uint8_t measurement_count = 0;
 
