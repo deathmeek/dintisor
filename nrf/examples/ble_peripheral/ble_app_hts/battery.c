@@ -89,22 +89,22 @@ uint8_t battery_measurement_init(uint8_t adc_channel)
 	nrf_drv_saadc_channel_init(adc_channel, &channel);
 #endif /* NRF52 */
 
-	return adc_channel + 1;
+	return 1;
 }
 
 /**
  * @brief Get VDD voltage and update battery level.
  */
-void battery_measurement_sample(int16_t sample)
+uint8_t battery_measurement_sample(int16_t* sample)
 {
 	uint8_t new_level;
 
 #ifdef NRF51
-	new_level = sample * 100 / 256;
+	new_level = *sample * 100 / 256;
 #endif /* NRF51 */
 
 #ifdef NRF52
-	new_level = sample * 100 / 1024;
+	new_level = *sample * 100 / 1024;
 #endif /* NRF52 */
 
 	uint32_t err_code = ble_bas_battery_level_update(&service, new_level);
@@ -115,4 +115,6 @@ void battery_measurement_sample(int16_t sample)
 	{
 		APP_ERROR_HANDLER(err_code);
 	}
+
+	return 1;
 }

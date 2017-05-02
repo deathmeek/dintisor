@@ -20,7 +20,7 @@ void battery_service_init(void);
 void battery_service_process_event(ble_evt_t* event);
 
 uint8_t battery_measurement_init(uint8_t adc_channel);
-void battery_measurement_sample(int16_t sample);
+uint8_t battery_measurement_sample(int16_t* sample);
 
 
 #endif /* DINTISOR_BATTERY_H_ */

@@ -21,7 +21,7 @@ void sense_service_init(void);
 void sense_on_ble_event(ble_evt_t* event);
 
 uint8_t sense_measurement_init(uint8_t adc_channel);
-void sense_measurement_sample(int16_t sample);
+uint8_t sense_measurement_sample(int16_t* sample);
 
 
 #endif /* DINTISOR_SENSE_H_ */

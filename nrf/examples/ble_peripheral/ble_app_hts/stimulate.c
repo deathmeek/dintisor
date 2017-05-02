@@ -754,17 +754,17 @@ uint8_t stimulate_measurement_init(uint8_t adc_channel)
 	nrf_drv_saadc_channel_init(adc_channel, &channel);
 #endif /* NRF52 */
 
-	return adc_channel + 1;
+	return 1;
 }
 
-void stimulate_measurement_sample(int16_t sample)
+uint8_t stimulate_measurement_sample(int16_t* sample)
 {
 #ifdef NRF51
-	amplitude_value = sample * 12 * 3 * 1350 / 1024; // (x / 1024) * 1.2 * 3 * (15 / (15 + 1.2)) * 1000
+	amplitude_value = *sample * 12 * 3 * 1350 / 1024; // (x / 1024) * 1.2 * 3 * (15 / (15 + 1.2)) * 1000
 #endif /* NRF51 */
 
 #ifdef NRF52
-	amplitude_value = sample * 6 * 6 * 100 / 1024; // (x / 1024) * 0.6 * 6 * 1000
+	amplitude_value = *sample * 6 * 6 * 100 / 1024; // (x / 1024) * 0.6 * 6 * 1000
 #endif /* NRF52 */
 
 	if(conn_handle != BLE_CONN_HANDLE_INVALID)
@@ -788,4 +788,6 @@ void stimulate_measurement_sample(int16_t sample)
 			APP_ERROR_HANDLER(err_code);
 		}
 	}
+
+	return 1;
 }

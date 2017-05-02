@@ -133,20 +133,20 @@ uint8_t sense_measurement_init(uint8_t adc_channel)
 	nrf_drv_saadc_channel_init(adc_channel, &channel);
 #endif /* NRF52 */
 
-	return adc_channel + 1;
+	return 1;
 }
 
 /**
  * @brief Get sensor value and update characteristics.
  */
-void sense_measurement_sample(int16_t sample)
+uint8_t sense_measurement_sample(int16_t* sample)
 {
 #ifdef NRF51
-	sense_value = sample;
+	sense_value = *sample;
 #endif /* NRF51 */
 
 #ifdef NRF52
-	sense_value = sample * 256 / 1024;
+	sense_value = *sample * 256 / 1024;
 #endif /* NRF52 */
 
 	if(conn_handle != BLE_CONN_HANDLE_INVALID)
@@ -170,4 +170,6 @@ void sense_measurement_sample(int16_t sample)
 			APP_ERROR_HANDLER(err_code);
 		}
 	}
+
+	return 1;
 }

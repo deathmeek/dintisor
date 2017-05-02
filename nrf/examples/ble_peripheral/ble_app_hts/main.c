@@ -292,6 +292,13 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
     }
 }
 
+#ifdef NRF51
+static nrf_adc_value_t measurement_buffer[3];
+#endif /* NRF51 */
+#ifdef NRF52
+static nrf_saadc_value_t measurement_buffer[3];
+#endif /* NRF52 */
+static uint8_t measurement_count = 0;
 
 /**
  * @brief Init measurement hardware.
@@ -312,10 +319,15 @@ static void measurement_init(void)
 	APP_ERROR_CHECK(err_code);
 #endif /* NRF52 */
 
-	uint8_t free_adc_channel = 0;
-	free_adc_channel = battery_measurement_init(free_adc_channel);
-	free_adc_channel = sense_measurement_init(free_adc_channel);
-	free_adc_channel = stimulate_measurement_init(free_adc_channel);
+	uint8_t first_adc_channel = 0;
+	uint8_t free_adc_channel = first_adc_channel;
+	free_adc_channel += battery_measurement_init(free_adc_channel);
+	free_adc_channel += sense_measurement_init(free_adc_channel);
+	free_adc_channel += stimulate_measurement_init(free_adc_channel);
+
+	measurement_count = free_adc_channel - first_adc_channel;
+
+	ASSERT("ADC sampling buffer too small" && (measurement_count <= ARRAY_SIZE(measurement_buffer)));
 }
 
 /**
@@ -333,8 +345,7 @@ static void battery_level_meas_timeout_handler(void * p_context)
 #ifdef NRF51
     ret_code_t err_code;
 
-    static nrf_adc_value_t sample_buffer[3];
-    err_code = nrf_drv_adc_buffer_convert(sample_buffer, 3);
+    err_code = nrf_drv_adc_buffer_convert(measurement_buffer, measurement_count);
     APP_ERROR_CHECK(err_code);
 
     nrf_drv_adc_sample();
@@ -343,8 +354,7 @@ static void battery_level_meas_timeout_handler(void * p_context)
 #ifdef NRF52
     ret_code_t err_code;
 
-    static nrf_saadc_value_t sample_buffer[3];
-    err_code = nrf_drv_saadc_buffer_convert(sample_buffer, 3);
+    err_code = nrf_drv_saadc_buffer_convert(measurement_buffer, measurement_count);
     APP_ERROR_CHECK(err_code);
 
     err_code = nrf_drv_saadc_sample();
@@ -359,31 +369,32 @@ static void battery_level_meas_timeout_handler(void * p_context)
 static void adc_event_handler(nrf_drv_adc_evt_t const *event)
 {
 	nrf_adc_value_t* sample_buffer;
-	uint16_t sample_count;
+	uint16_t sample_count, sample_used;
 
 	switch(event->type)
 	{
 		case NRF_DRV_ADC_EVT_DONE:
 			sample_buffer = event->data.done.p_buffer;
 			sample_count = event->data.done.size;
+			sample_used = 0;
 
-			if(sample_count > 0)
+			if(sample_used < sample_count)
 			{
-				battery_measurement_sample(*sample_buffer);
-				sample_buffer++;
-				sample_count--;
+				uint8_t used = battery_measurement_sample(sample_buffer);
+				sample_buffer += used;
+				sample_used += used;
 			}
-			if(sample_count > 0)
+			if(sample_used < sample_count)
 			{
-				sense_measurement_sample(*sample_buffer);
-				sample_buffer++;
-				sample_count--;
+				uint8_t used = sense_measurement_sample(sample_buffer);
+				sample_buffer += used;
+				sample_used += used;
 			}
-			if(sample_count > 0)
+			if(sample_used < sample_count)
 			{
-				stimulate_measurement_sample(*sample_buffer);
-				sample_buffer++;
-				sample_count--;
+				uint8_t used = stimulate_measurement_sample(sample_buffer);
+				sample_buffer += used;
+				sample_used += used;
 			}
 			break;
 
@@ -400,31 +411,32 @@ static void adc_event_handler(nrf_drv_adc_evt_t const *event)
 static void adc_event_handler(nrf_drv_saadc_evt_t const *event)
 {
 	nrf_saadc_value_t* sample_buffer;
-	uint16_t sample_count;
+	uint16_t sample_count, sample_used;
 
 	switch(event->type)
 	{
 		case NRF_DRV_SAADC_EVT_DONE:
 			sample_buffer = event->data.done.p_buffer;
 			sample_count = event->data.done.size;
+			sample_used = 0;
 
-			if(sample_count > 0)
+			if(sample_used < sample_count)
 			{
-				battery_measurement_sample(*sample_buffer);
-				sample_buffer++;
-				sample_count--;
+				uint8_t used = battery_measurement_sample(sample_buffer);
+				sample_buffer += used;
+				sample_used += used;
 			}
-			if(sample_count > 0)
+			if(sample_used < sample_count)
 			{
-				sense_measurement_sample(*sample_buffer);
-				sample_buffer++;
-				sample_count--;
+				uint8_t used = sense_measurement_sample(sample_buffer);
+				sample_buffer += used;
+				sample_used += used;
 			}
-			if(sample_count > 0)
+			if(sample_used < sample_count)
 			{
-				stimulate_measurement_sample(*sample_buffer);
-				sample_buffer++;
-				sample_count--;
+				uint8_t used = stimulate_measurement_sample(sample_buffer);
+				sample_buffer += used;
+				sample_used += used;
 			}
 			break;
 
