@@ -23,6 +23,8 @@
 
 static ble_bas_t service;		// battery service handle
 
+float battery_voltage = 0.0f;
+
 
 /**
  * @brief Initialize BLE Battery Service.
@@ -65,7 +67,7 @@ uint8_t battery_measurement_init(uint8_t adc_channel)
 #ifdef NRF51
 	static nrf_drv_adc_channel_t channel = {
 			.config.config = {
-				.resolution = NRF_ADC_CONFIG_RES_8BIT,
+				.resolution = NRF_ADC_CONFIG_RES_10BIT,
 				.input = NRF_ADC_CONFIG_SCALING_SUPPLY_ONE_THIRD,
 				.reference = NRF_ADC_CONFIG_REF_VBG,	// 1.2V
 				.ain = NRF_ADC_CONFIG_INPUT_DISABLED,
@@ -101,11 +103,13 @@ uint8_t battery_measurement_sample(int16_t* sample)
 	uint8_t new_level;
 
 #ifdef NRF51
-	new_level = *sample * 100 / 256;
+	battery_voltage = *sample * (1.2f / 1024 / (1.0f/3));	// REF=1.2V, RES=10bit, GAIN=1/3
+	new_level = battery_voltage * (100 / 3.3f);				// MAX=3.3V
 #endif /* NRF51 */
 
 #ifdef NRF52
-	new_level = *sample * 100 / 1024;
+	battery_voltage = *sample * (0.6f / 1024 / (1.0f/6));	// REF=0.6V, RES=10bit, GAIN=1/6
+	new_level = battery_voltage * (100 / 3.3f);				// MAX=3.3V
 #endif /* NRF52 */
 
 	uint32_t err_code = ble_bas_battery_level_update(&service, new_level);
