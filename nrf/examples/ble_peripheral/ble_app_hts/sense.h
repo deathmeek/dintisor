@@ -9,12 +9,8 @@
 #define DINTISOR_SENSE_H_
 
 #include <ble.h>
-#include <ble_types.h>
 
 #include <stdint.h>
-
-
-ble_uuid_t service_uuid;
 
 
 void sense_service_init(void);

@@ -936,8 +936,7 @@ static void advertising_init(void)
     advdata.uuids_complete.p_uuids  = m_adv_uuids;
 
     memset(&srdata, 0, sizeof(srdata));
-    srdata.uuids_complete.uuid_cnt  = 1;
-    srdata.uuids_complete.p_uuids   = &service_uuid;
+    srdata.uuids_complete.uuid_cnt  = 0;
 
     memset(&options, 0, sizeof(options));
     options.ble_adv_fast_enabled  = true;
