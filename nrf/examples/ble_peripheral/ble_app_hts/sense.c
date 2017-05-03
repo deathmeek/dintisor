@@ -197,8 +197,8 @@ uint8_t sense_measurement_init(uint8_t adc_channel)
 uint8_t sense_measurement_sample(int16_t* sample)
 {
 #ifdef NRF51
-	humidity_value	= *sample++ * (1.2f / 1024 / (1.0f/3) * ((100.0f + 22.0f) / 100.0f));	// REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=22K, GND_RES=100K
-	pH_value		= *sample++ * (1.2f / 1024 / (1.0f/3) * ((100.0f + 22.0f) / 100.0f));	// REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=22K, GND_RES=100K
+	humidity_value	= *sample++ * (1.2f / 1024 / (1.0f/3) / (100.0f / (100.0f + 22.0f)));	// REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=22K, GND_RES=100K
+	pH_value		= *sample++ * (1.2f / 1024 / (1.0f/3) / (100.0f / (100.0f + 22.0f)));	// REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=22K, GND_RES=100K
 #endif /* NRF51 */
 
 #ifdef NRF52
