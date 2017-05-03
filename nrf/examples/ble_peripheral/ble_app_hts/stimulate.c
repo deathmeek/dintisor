@@ -741,6 +741,8 @@ uint8_t stimulate_measurement_init(uint8_t adc_channel)
 #endif /* NRF51 */
 
 #ifdef NRF52
+	ret_code_t err_code;
+
 	static nrf_saadc_channel_config_t channel = {
 			.resistor_p = NRF_SAADC_RESISTOR_DISABLED,
 			.resistor_n = NRF_SAADC_RESISTOR_DISABLED,
@@ -752,7 +754,8 @@ uint8_t stimulate_measurement_init(uint8_t adc_channel)
 			.pin_p = NRF_SAADC_INPUT_VDD,
 			.pin_n = NRF_SAADC_INPUT_DISABLED,
 	};
-	nrf_drv_saadc_channel_init(adc_channel++, &channel);
+	err_code = nrf_drv_saadc_channel_init(adc_channel++, &channel);
+	APP_ERROR_CHECK(err_code);
 #endif /* NRF52 */
 
 	return adc_channel;
