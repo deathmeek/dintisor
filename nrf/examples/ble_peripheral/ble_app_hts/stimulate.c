@@ -764,11 +764,13 @@ uint8_t stimulate_measurement_init(uint8_t adc_channel)
 uint8_t stimulate_measurement_sample(int16_t* sample)
 {
 #ifdef NRF51
-	amplitude_value = *sample * 12 * 3 * 1350 / 1024; // (x / 1024) * 1.2 * 3 * (15 / (15 + 1.2)) * 1000
+	float amplitude_voltage = *sample * (1.2f / 1024 / (1.0f/3) / (1.2f / (1.2f + 15.0f))); // REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=15K, GND_RES=1.2K
+	amplitude_value = amplitude_voltage * 1000;	//mV
 #endif /* NRF51 */
 
 #ifdef NRF52
-	amplitude_value = *sample * 6 * 6 * 100 / 1024; // (x / 1024) * 0.6 * 6 * 1000
+	float amplitude_voltage = *sample * (0.6f / 1024 / (1.0f/6));	// REF=0.6V, RES=10bit, GAIN=1/6
+	amplitude_value = amplitude_voltage * 1000;	//mV
 #endif /* NRF52 */
 
 	if(conn_handle != BLE_CONN_HANDLE_INVALID)
