@@ -29,9 +29,6 @@
 #include <string.h>
 
 
-extern float battery_voltage;
-
-
 static const ble_uuid128_t		full_uuid = {{0x85, 0xf5, 0x2b, 0x3f, 0x03, 0x1b, 0x7d, 0x82, 0xab, 0x49, 0x9e, 0x7f, 0x2d, 0x92, 0x1e, 0x13}};
 
 static ble_uuid_t				service_uuid;
@@ -234,14 +231,14 @@ uint8_t sense_measurement_sample(int16_t* sample)
 #endif /* NRF51 */
 
 #ifdef NRF52
-	float humidity_voltage	= *sample++ * (0.6f / 1024 / (1.0f/6));								// REF=0.6V, RES=10bit, GAIN=1/6
-	humidity_value			= humidity_voltage * 33.0f / (battery_voltage - humidity_voltage);	// VDD_RES=33K
+	float humidity_voltage	= *sample++ * (0.6f / 1024 / (1.0f/6));									// REF=0.6V, RES=10bit, GAIN=1/6
+	humidity_value			= humidity_voltage;
 
-	float pH_voltage		= *sample++ * (0.6f / 1024 / (1.0f/6));								// REF=0.6V, RES=10bit, GAIN=1/6
-	pH_value				= pH_voltage * 33.0f / (battery_voltage - pH_voltage);				// VDD_RES=33K
+	float pH_voltage		= *sample++ * (0.6f / 1024 / (1.0f/6));									// REF=0.6V, RES=10bit, GAIN=1/6
+	pH_value				= pH_voltage;
 #endif /* NRF52 */
 
-	NRF_LOG_DEBUG("bat %dmV, hum %dmV, pH %dmV, hum %d, pH %d\n", (int)(battery_voltage*1000), (int)(humidity_voltage*1000), (int)(pH_voltage*1000), (int)(humidity_value*1000), (int)(pH_value*1000));
+	NRF_LOG_DEBUG("hum %dmV, pH %dmV\n", (int)(humidity_voltage*1000), (int)(pH_voltage*1000));
 
 	if(conn_handle != BLE_CONN_HANDLE_INVALID)
 	{
