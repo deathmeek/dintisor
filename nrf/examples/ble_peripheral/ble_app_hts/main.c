@@ -342,6 +342,10 @@ static void battery_level_meas_timeout_handler(void * p_context)
 {
     UNUSED_PARAMETER(p_context);
 
+    battery_measurement_prep();
+    sense_measurement_prep();
+    stimulate_measurement_prep();
+
 #ifdef NRF51
     ret_code_t err_code;
 

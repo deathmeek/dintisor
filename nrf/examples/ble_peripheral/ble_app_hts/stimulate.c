@@ -761,6 +761,11 @@ uint8_t stimulate_measurement_init(uint8_t adc_channel)
 	return adc_channel;
 }
 
+void stimulate_measurement_prep()
+{
+	// TODO stimulation voltage source is not always active
+}
+
 uint8_t stimulate_measurement_sample(int16_t* sample)
 {
 #ifdef NRF51

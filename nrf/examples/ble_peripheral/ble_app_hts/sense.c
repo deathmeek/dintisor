@@ -20,6 +20,7 @@
 #ifdef NRF52
 #include <nrf_drv_saadc.h>
 #endif /* NRF52 */
+#include <nrf_gpio.h>
 #include <nrf_log.h>
 #include <nrf_soc.h>
 
@@ -192,7 +193,26 @@ uint8_t sense_measurement_init(uint8_t adc_channel)
 	APP_ERROR_CHECK(err_code);
 #endif /* NRF52 */
 
+	// setup sensors
+#ifdef NRF52
+	// humidity: 0 - disconnected, 1 - powered
+	NRF_GPIO->OUTCLR = (1 << 6);
+	NRF_GPIO->PIN_CNF[6] = NRF_GPIO_PIN_DIR_OUTPUT | NRF_GPIO_PIN_INPUT_DISCONNECT | NRF_GPIO_PIN_NOPULL | NRF_GPIO_PIN_D0S1;
+
+	// pH: 0 - disconnected, 1 - powered
+	NRF_GPIO->OUTCLR = (1 << 28);
+	NRF_GPIO->PIN_CNF[28] = NRF_GPIO_PIN_DIR_OUTPUT | NRF_GPIO_PIN_INPUT_DISCONNECT | NRF_GPIO_PIN_NOPULL | NRF_GPIO_PIN_D0S1;
+#endif /* NRF52 */
+
 	return adc_channel;
+}
+
+void sense_measurement_prep()
+{
+	// activate sensors
+#ifdef NRF52
+	NRF_GPIO->OUTSET = (1 << 6) | (1 << 28);
+#endif /* NRF52 */
 }
 
 /**
@@ -200,6 +220,11 @@ uint8_t sense_measurement_init(uint8_t adc_channel)
  */
 uint8_t sense_measurement_sample(int16_t* sample)
 {
+	// deactivate sensors
+#ifdef NRF52
+	NRF_GPIO->OUTCLR = (1 << 6) | (1 << 28);
+#endif /* NRF52 */
+
 #ifdef NRF51
 	float humidity_voltage	= *sample++ * (1.2f / 1024 / (1.0f/3) / (100.0f / (100.0f + 22.0f)));	// REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=22K, GND_RES=100K
 	humidity_value			= humidity_voltage;
