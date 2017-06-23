@@ -5,6 +5,9 @@
  *      Author: dan
  */
 
+#define NRF_LOG_MODULE_NAME "SENS"
+
+
 #include <app_error.h>
 #include <ble.h>
 #include <ble_gap.h>
@@ -17,6 +20,7 @@
 #ifdef NRF52
 #include <nrf_drv_saadc.h>
 #endif /* NRF52 */
+#include <nrf_log.h>
 #include <nrf_soc.h>
 
 #include <stddef.h>
@@ -197,17 +201,22 @@ uint8_t sense_measurement_init(uint8_t adc_channel)
 uint8_t sense_measurement_sample(int16_t* sample)
 {
 #ifdef NRF51
-	humidity_value	= *sample++ * (1.2f / 1024 / (1.0f/3) / (100.0f / (100.0f + 22.0f)));	// REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=22K, GND_RES=100K
-	pH_value		= *sample++ * (1.2f / 1024 / (1.0f/3) / (100.0f / (100.0f + 22.0f)));	// REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=22K, GND_RES=100K
+	float humidity_voltage	= *sample++ * (1.2f / 1024 / (1.0f/3) / (100.0f / (100.0f + 22.0f)));	// REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=22K, GND_RES=100K
+	humidity_value			= humidity_voltage;
+
+	float pH_voltage		= *sample++ * (1.2f / 1024 / (1.0f/3) / (100.0f / (100.0f + 22.0f)));	// REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=22K, GND_RES=100K
+	pH_value				= pH_voltage;
 #endif /* NRF51 */
 
 #ifdef NRF52
-	float humidity_voltage	= *sample++ * (0.6f / 1024 / (1.0f/6));	// REF=0.6V, RES=10bit, GAIN=1/6
+	float humidity_voltage	= *sample++ * (0.6f / 1024 / (1.0f/6));								// REF=0.6V, RES=10bit, GAIN=1/6
 	humidity_value			= humidity_voltage * 33.0f / (battery_voltage - humidity_voltage);	// VDD_RES=33K
 
-	float pH_voltage		= *sample++ * (0.6f / 1024 / (1.0f/6));	// REF=0.6V, RES=10bit, GAIN=1/6
+	float pH_voltage		= *sample++ * (0.6f / 1024 / (1.0f/6));								// REF=0.6V, RES=10bit, GAIN=1/6
 	pH_value				= pH_voltage * 33.0f / (battery_voltage - pH_voltage);				// VDD_RES=33K
 #endif /* NRF52 */
+
+	NRF_LOG_DEBUG("bat %dmV, hum %dmV, pH %dmV, hum %d, pH %d\n", (int)(battery_voltage*1000), (int)(humidity_voltage*1000), (int)(pH_voltage*1000), (int)(humidity_value*1000), (int)(pH_value*1000));
 
 	if(conn_handle != BLE_CONN_HANDLE_INVALID)
 	{
