@@ -509,6 +509,8 @@ static void round_handle_timer_event(nrf_timer_event_t event_type, void* context
 	switch(event_type)
 	{
 		case NRF_TIMER_EVENT_COMPARE0:
+			nrf_drv_timer_disable(&train_timer);
+
 			if(train_timer_remaining)
 			{
 				uint16_t timer_next_compare = round_compute_timer_compare(&train_timer_remaining);
@@ -699,6 +701,8 @@ static void pulse_handle_timer_event(nrf_timer_event_t event_type, void* p_conte
 	switch(event_type)
 	{
 		case NRF_TIMER_EVENT_COMPARE3:
+			nrf_drv_timer_disable(&stimulate_timer);
+
 			if(pulse_timer_desired_state == TIMER_RUNNING)
 			{
 				// protect against concurrent execution with reconfiguration request
