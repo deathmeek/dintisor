@@ -35,6 +35,12 @@
 #include "nrf_log_ctrl.h"
 
 
+typedef enum {
+	TIMER_STOPPED = 0,
+	TIMER_RUNNING = 1,
+} timer_state_t;
+
+
 static void stimulate_service_add_characteristic(ble_uuid_t*, ble_gatts_char_handles_t*, void*, uint8_t);
 static void stimulate_service_on_gatts_write_event(ble_gatts_evt_write_t*);
 static void stimulate_service_on_gatts_write_activ_params(void);
@@ -62,9 +68,21 @@ static void pulse_compute_timer_config(void);
 static uint16_t pulse_compute_timer_compare(uint32_t*);
 
 
-static const uint32_t enable_pin = 5;
-static const uint32_t positive_pin = 3;
-static const uint32_t negative_pin = 4;
+#if defined(BOARD_PCA10028) || defined(BOARD_SPARROW_BLE)
+static const uint32_t enable_pin = 5;		// A4
+static const uint32_t positive_pin = 3;		// A2
+static const uint32_t negative_pin = 4;		// A3
+#elif defined(BOARD_PCA10031)
+static const uint32_t enable_pin = 18;		// 18
+static const uint32_t positive_pin = 19;	// 19
+static const uint32_t negative_pin = 20;	// 20
+#elif defined(BOARD_PCA10040)
+static const uint32_t enable_pin = 30;		// A4
+static const uint32_t positive_pin = 28;	// A2
+static const uint32_t negative_pin = 29;	// A3
+#elif defined(BOARD_TOOTH)
+static const uint32_t stimulation_pin = 0;
+#endif
 
 static const ble_uuid128_t full_uuid = {{0x09, 0x45, 0x37, 0x13, 0xc3, 0xe6, 0x79, 0xb5, 0x8c, 0x41, 0xaf, 0x2e, 0x81, 0xbc, 0x6f, 0x01}};
 static ble_uuid_t service_uuid;
@@ -105,10 +123,7 @@ static uint16_t conn_handle = BLE_CONN_HANDLE_INVALID;
 // must update compute_timer_compare when changing timer configuration
 static const nrf_drv_timer_t stimulate_timer = NRF_DRV_TIMER_INSTANCE(1);
 static const nrf_drv_timer_config_t stimulate_timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
-static volatile enum pulse_timer_state_t {
-	TIMER_STOPPED = 0,
-	TIMER_RUNNING = 1,
-} pulse_timer_state, pulse_timer_desired_state;
+static volatile timer_state_t pulse_timer_state, pulse_timer_desired_state;
 static void (* volatile pulse_timer_continuation)() = NULL;
 static volatile uint16_t compare0;
 static volatile uint16_t compare1;
@@ -116,6 +131,7 @@ static volatile uint16_t compare2;
 static volatile uint16_t compare3;
 
 static const nrf_drv_timer_t train_timer = NRF_DRV_TIMER_INSTANCE(2);
+static volatile timer_state_t train_timer_state;
 static uint32_t train_timer_remaining;
 
 APP_TIMER_DEF(timer);
@@ -200,18 +216,32 @@ void stimulate_service_init(void)
 	err_code = nrf_drv_timer_init(&stimulate_timer, &stimulate_timer_cfg, pulse_handle_timer_event);
 	APP_ERROR_CHECK(err_code);
 
-	// configure H-bridge controls when GPIOTE is inactive
+	// configure electrode(s) when GPIOTE is inactive
+#if defined(BOARD_PCA10028) || defined(BOARD_PCA10031) || defined(BOARD_PCA10040) || defined(BOARD_SPARROW_BLE)
 	// default state of H-bridge is disabled
 	NRF_GPIO->OUTCLR = (1 << positive_pin) | (1 << negative_pin);
 	NRF_GPIO->DIRSET = (1 << positive_pin) | (1 << negative_pin);
+#elif defined(BOARD_TOOTH)
+	// default state of stimulation pin is disabled
+	NRF_GPIO->OUTCLR = (1 << stimulation_pin);
+	NRF_GPIO->DIRSET = (1 << stimulation_pin);
+#endif
 
+#if defined(BOARD_PCA10028) || defined(BOARD_PCA10031) || defined(BOARD_PCA10040) || defined(BOARD_SPARROW_BLE)
 	// configure stimulation voltage source control, disabling the source
 	NRF_GPIO->OUTCLR = (1 << enable_pin);
 	NRF_GPIO->DIRSET = (1 << enable_pin);
+#endif
 
-	// configure H-bridge controls when under the control of GPIOTE
+	// configure electrode(s) when under the control of GPIOTE
+#if defined(BOARD_PCA10028) || defined(BOARD_PCA10031) || defined(BOARD_PCA10040) || defined(BOARD_SPARROW_BLE)
+	// H-bridge controlled by timer events
 	pulse_config_pin((nrf_drv_gpiote_pin_t)positive_pin, NRF_TIMER_EVENT_COMPARE0, NRF_TIMER_EVENT_COMPARE1);
 	pulse_config_pin((nrf_drv_gpiote_pin_t)negative_pin, NRF_TIMER_EVENT_COMPARE2, NRF_TIMER_EVENT_COMPARE3);
+#elif defined(BOARD_TOOTH)
+	// stimulation pin controlled by timer events
+	pulse_config_pin((nrf_drv_gpiote_pin_t)stimulation_pin, NRF_TIMER_EVENT_COMPARE0, NRF_TIMER_EVENT_COMPARE1);
+#endif
 
 	// configure channel used for pulse counting
 	nrf_ppi_channel_t pulse_count_channel;
@@ -390,8 +420,10 @@ static void stimulate_service_on_gatts_write_pulse_params(void)
 
 static void activ_start(void)
 {
+#if defined(BOARD_PCA10028) || defined(BOARD_PCA10031) || defined(BOARD_PCA10040) || defined(BOARD_SPARROW_BLE)
 	// enable stimulation voltage source
 	NRF_GPIO->OUTSET = (1 << enable_pin);
+#endif
 
 	round_start_on();
 }
@@ -402,8 +434,10 @@ static void activ_stop(void)
 
 	round_stop();
 
+#if defined(BOARD_PCA10028) || defined(BOARD_PCA10031) || defined(BOARD_PCA10040) || defined(BOARD_SPARROW_BLE)
 	// disable stimulation voltage source
 	NRF_GPIO->OUTCLR = (1 << enable_pin);
+#endif
 }
 
 static void activ_handle_timer_event(void* context)
@@ -438,6 +472,7 @@ static void round_start_on(void)
 	nrf_drv_timer_extended_compare(&train_timer,
 			NRF_TIMER_CC_CHANNEL0, timer_next_compare,
 			NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK | NRF_TIMER_SHORT_COMPARE0_STOP_MASK, true);
+	train_timer_state = TIMER_RUNNING;
 	nrf_drv_timer_enable(&train_timer);
 
 	pulse_start();
@@ -466,12 +501,17 @@ static void round_start_off(void)
 	nrf_drv_timer_extended_compare(&train_timer,
 			NRF_TIMER_CC_CHANNEL0, timer_next_compare,
 			NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK | NRF_TIMER_SHORT_COMPARE0_STOP_MASK, true);
+	train_timer_state = TIMER_RUNNING;
 	nrf_drv_timer_enable(&train_timer);
 }
 
 static void round_stop(void)
 {
-	nrf_drv_timer_disable(&train_timer);
+	if(train_timer_state == TIMER_RUNNING)
+	{
+		nrf_drv_timer_disable(&train_timer);
+		train_timer_state = TIMER_STOPPED;
+	}
 }
 
 static void round_handle_timer_event(nrf_timer_event_t event_type, void* context)
@@ -479,12 +519,19 @@ static void round_handle_timer_event(nrf_timer_event_t event_type, void* context
 	switch(event_type)
 	{
 		case NRF_TIMER_EVENT_COMPARE0:
+			if(train_timer_state == TIMER_RUNNING)
+			{
+				nrf_drv_timer_disable(&train_timer);
+				train_timer_state = TIMER_STOPPED;
+			}
+
 			if(train_timer_remaining)
 			{
 				uint16_t timer_next_compare = round_compute_timer_compare(&train_timer_remaining);
 
 				nrf_drv_timer_compare(&train_timer, NRF_TIMER_CC_CHANNEL0, timer_next_compare, true);
 
+				train_timer_state = TIMER_RUNNING;
 				nrf_drv_timer_enable(&train_timer);
 			}
 			else
@@ -560,9 +607,15 @@ static uint16_t round_compute_timer_compare(uint32_t* remaining)
 
 static void pulse_start(void)
 {
-	// make sure toggling starts with H-bridge disabled
+	// make sure toggling starts with electrode(s) disabled
+#if defined(BOARD_PCA10028) || defined(BOARD_PCA10031) || defined(BOARD_PCA10040) || defined(BOARD_SPARROW_BLE)
+	// H-bridge is disabled
 	nrf_drv_gpiote_out_task_force((nrf_drv_gpiote_pin_t)positive_pin, 0);
 	nrf_drv_gpiote_out_task_force((nrf_drv_gpiote_pin_t)negative_pin, 0);
+#elif defined(BOARD_TOOTH)
+	// stimulation pin is disabled
+	nrf_drv_gpiote_out_task_force((nrf_drv_gpiote_pin_t)stimulation_pin, 0);
+#endif
 
 	pulse_compute_timer_config();
 	pulse_update(TIMER_STOPPED);
@@ -588,7 +641,7 @@ static void pulse_stop(void (*continuation)(void))
 	CRITICAL_REGION_EXIT();
 }
 
-static void pulse_update(enum pulse_timer_state_t timer_state)
+static void pulse_update(timer_state_t timer_state)
 {
 	switch(timer_state)
 	{
@@ -611,6 +664,7 @@ static void pulse_update(enum pulse_timer_state_t timer_state)
 			nrf_drv_timer_extended_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL3, compare3, NRF_TIMER_SHORT_COMPARE3_CLEAR_MASK, false);
 
 			// pulse pin toggling doesn't work if duration is 0, replace with task disabling
+#if defined(BOARD_PCA10028) || defined(BOARD_PCA10031) || defined(BOARD_PCA10040) || defined(BOARD_SPARROW_BLE)
 			if(compare0 != compare1)
 				nrf_drv_gpiote_out_task_enable((nrf_drv_gpiote_pin_t)positive_pin);
 			else
@@ -619,6 +673,12 @@ static void pulse_update(enum pulse_timer_state_t timer_state)
 				nrf_drv_gpiote_out_task_enable((nrf_drv_gpiote_pin_t)negative_pin);
 			else
 				nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)negative_pin);
+#elif defined(BOARD_TOOTH)
+			if(compare0 != compare1)
+				nrf_drv_gpiote_out_task_enable((nrf_drv_gpiote_pin_t)stimulation_pin);
+			else
+				nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)stimulation_pin);
+#endif
 			break;
 	}
 }
@@ -656,6 +716,9 @@ static void pulse_handle_timer_event(nrf_timer_event_t event_type, void* p_conte
 	switch(event_type)
 	{
 		case NRF_TIMER_EVENT_COMPARE3:
+			nrf_drv_timer_disable(&stimulate_timer);
+			pulse_timer_state = TIMER_STOPPED;
+
 			if(pulse_timer_desired_state == TIMER_RUNNING)
 			{
 				// protect against concurrent execution with reconfiguration request
@@ -664,17 +727,22 @@ static void pulse_handle_timer_event(nrf_timer_event_t event_type, void* p_conte
 				// timer is no longer running at this point
 				// update config and re-enable
 				pulse_update(TIMER_STOPPED);
+				pulse_timer_state = TIMER_RUNNING;
 				nrf_drv_timer_enable(&stimulate_timer);
 
 				CRITICAL_REGION_EXIT();
 			}
 			else
 			{
-				// make sure H-bridge is disabled
+				// make sure electrode(s) are disabled
+#if defined(BOARD_PCA10028) || defined(BOARD_PCA10031) || defined(BOARD_PCA10040) || defined(BOARD_SPARROW_BLE)
+				// H-bridge is disabled
 				nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)positive_pin);
 				nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)negative_pin);
-
-				pulse_timer_state = TIMER_STOPPED;
+#elif defined(BOARD_TOOTH)
+				// stimulation pin is disabled
+				nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)stimulation_pin);
+#endif
 
 				if(pulse_timer_continuation != NULL)
 					pulse_timer_continuation();
