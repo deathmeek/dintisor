@@ -35,6 +35,12 @@
 #include "nrf_log_ctrl.h"
 
 
+typedef enum {
+	TIMER_STOPPED = 0,
+	TIMER_RUNNING = 1,
+} timer_state_t;
+
+
 static void stimulate_service_add_characteristic(ble_uuid_t*, ble_gatts_char_handles_t*, void*, uint8_t);
 static void stimulate_service_on_gatts_write_event(ble_gatts_evt_write_t*);
 static void stimulate_service_on_gatts_write_activ_params(void);
@@ -117,10 +123,7 @@ static uint16_t conn_handle = BLE_CONN_HANDLE_INVALID;
 // must update compute_timer_compare when changing timer configuration
 static const nrf_drv_timer_t stimulate_timer = NRF_DRV_TIMER_INSTANCE(1);
 static const nrf_drv_timer_config_t stimulate_timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
-static volatile enum pulse_timer_state_t {
-	TIMER_STOPPED = 0,
-	TIMER_RUNNING = 1,
-} pulse_timer_state, pulse_timer_desired_state;
+static volatile timer_state_t pulse_timer_state, pulse_timer_desired_state;
 static void (* volatile pulse_timer_continuation)() = NULL;
 static volatile uint16_t compare0;
 static volatile uint16_t compare1;
@@ -128,6 +131,7 @@ static volatile uint16_t compare2;
 static volatile uint16_t compare3;
 
 static const nrf_drv_timer_t train_timer = NRF_DRV_TIMER_INSTANCE(2);
+static volatile timer_state_t train_timer_state;
 static uint32_t train_timer_remaining;
 
 APP_TIMER_DEF(timer);
@@ -468,6 +472,7 @@ static void round_start_on(void)
 	nrf_drv_timer_extended_compare(&train_timer,
 			NRF_TIMER_CC_CHANNEL0, timer_next_compare,
 			NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK | NRF_TIMER_SHORT_COMPARE0_STOP_MASK, true);
+	train_timer_state = TIMER_RUNNING;
 	nrf_drv_timer_enable(&train_timer);
 
 	pulse_start();
@@ -496,12 +501,17 @@ static void round_start_off(void)
 	nrf_drv_timer_extended_compare(&train_timer,
 			NRF_TIMER_CC_CHANNEL0, timer_next_compare,
 			NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK | NRF_TIMER_SHORT_COMPARE0_STOP_MASK, true);
+	train_timer_state = TIMER_RUNNING;
 	nrf_drv_timer_enable(&train_timer);
 }
 
 static void round_stop(void)
 {
-	nrf_drv_timer_disable(&train_timer);
+	if(train_timer_state == TIMER_RUNNING)
+	{
+		nrf_drv_timer_disable(&train_timer);
+		train_timer_state = TIMER_STOPPED;
+	}
 }
 
 static void round_handle_timer_event(nrf_timer_event_t event_type, void* context)
@@ -509,7 +519,11 @@ static void round_handle_timer_event(nrf_timer_event_t event_type, void* context
 	switch(event_type)
 	{
 		case NRF_TIMER_EVENT_COMPARE0:
-			nrf_drv_timer_disable(&train_timer);
+			if(train_timer_state == TIMER_RUNNING)
+			{
+				nrf_drv_timer_disable(&train_timer);
+				train_timer_state = TIMER_STOPPED;
+			}
 
 			if(train_timer_remaining)
 			{
@@ -517,6 +531,7 @@ static void round_handle_timer_event(nrf_timer_event_t event_type, void* context
 
 				nrf_drv_timer_compare(&train_timer, NRF_TIMER_CC_CHANNEL0, timer_next_compare, true);
 
+				train_timer_state = TIMER_RUNNING;
 				nrf_drv_timer_enable(&train_timer);
 			}
 			else
@@ -626,7 +641,7 @@ static void pulse_stop(void (*continuation)(void))
 	CRITICAL_REGION_EXIT();
 }
 
-static void pulse_update(enum pulse_timer_state_t timer_state)
+static void pulse_update(timer_state_t timer_state)
 {
 	switch(timer_state)
 	{
@@ -702,6 +717,7 @@ static void pulse_handle_timer_event(nrf_timer_event_t event_type, void* p_conte
 	{
 		case NRF_TIMER_EVENT_COMPARE3:
 			nrf_drv_timer_disable(&stimulate_timer);
+			pulse_timer_state = TIMER_STOPPED;
 
 			if(pulse_timer_desired_state == TIMER_RUNNING)
 			{
@@ -711,6 +727,7 @@ static void pulse_handle_timer_event(nrf_timer_event_t event_type, void* p_conte
 				// timer is no longer running at this point
 				// update config and re-enable
 				pulse_update(TIMER_STOPPED);
+				pulse_timer_state = TIMER_RUNNING;
 				nrf_drv_timer_enable(&stimulate_timer);
 
 				CRITICAL_REGION_EXIT();
@@ -726,8 +743,6 @@ static void pulse_handle_timer_event(nrf_timer_event_t event_type, void* p_conte
 				// stimulation pin is disabled
 				nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)stimulation_pin);
 #endif
-
-				pulse_timer_state = TIMER_STOPPED;
 
 				if(pulse_timer_continuation != NULL)
 					pulse_timer_continuation();
