@@ -70,9 +70,6 @@
 #define MANUFACTURER_ID                 0x1122334455                                /**< Manufacturer ID, part of System ID. Will be passed to Device Information Service. */
 #define ORG_UNIQUE_ID                   0x667788                                    /**< Organizational Unique ID, part of System ID. Will be passed to Device Information Service. */
 
-#define APP_ADV_INTERVAL                40                                          /**< The advertising interval (in units of 0.625 ms. This value corresponds to 25 ms). */
-#define APP_ADV_TIMEOUT_IN_SECONDS      180                                         /**< The advertising timeout in units of seconds. */
-
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
 
@@ -635,6 +632,12 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
             APP_ERROR_CHECK(err_code);
             break;
 
+        case BLE_ADV_EVT_SLOW:
+            NRF_LOG_INFO("Slow advertising\r\n");
+            err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
+            APP_ERROR_CHECK(err_code);
+            break;
+
         case BLE_ADV_EVT_IDLE:
             sleep_mode_enter();
             break;
@@ -940,8 +943,11 @@ static void advertising_init(void)
 
     memset(&options, 0, sizeof(options));
     options.ble_adv_fast_enabled  = true;
-    options.ble_adv_fast_interval = APP_ADV_INTERVAL;
-    options.ble_adv_fast_timeout  = APP_ADV_TIMEOUT_IN_SECONDS;
+    options.ble_adv_fast_interval = 1600;	// units of 0.625ms -> 1s
+    options.ble_adv_fast_timeout  = 30;		// seconds
+    options.ble_adv_slow_enabled  = true;
+    options.ble_adv_slow_interval = 16384;	// units of 0.625ms -> 10.24s
+    options.ble_adv_slow_timeout  = 0;		// no timeout
 
     err_code = ble_advertising_init(&advdata, &srdata, &options, on_adv_evt, NULL);
     APP_ERROR_CHECK(err_code);
