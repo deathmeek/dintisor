@@ -124,6 +124,7 @@ static uint16_t conn_handle = BLE_CONN_HANDLE_INVALID;
 static const nrf_drv_timer_t stimulate_timer = NRF_DRV_TIMER_INSTANCE(1);
 static const nrf_drv_timer_config_t stimulate_timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
 static volatile timer_state_t pulse_timer_state;
+static nrf_ppi_channel_t pulse_stop_channel;
 static volatile uint16_t compare0;
 static volatile uint16_t compare1;
 static volatile uint16_t compare2;
@@ -249,6 +250,12 @@ void stimulate_service_init(void)
 	APP_ERROR_CHECK(nrf_drv_ppi_channel_alloc(&pulse_count_channel));
 	APP_ERROR_CHECK(nrf_drv_ppi_channel_assign(pulse_count_channel, pulse_count_event_addr, pulse_count_task_addr));
 	APP_ERROR_CHECK(nrf_drv_ppi_channel_enable(pulse_count_channel));
+
+	// configure channel used for pulse stopping
+	uint32_t pulse_stop_event_addr = nrf_drv_timer_event_address_get(&train_timer, NRF_TIMER_EVENT_COMPARE0);
+	uint32_t pulse_stop_task_addr = nrf_drv_timer_task_address_get(&stimulate_timer, NRF_TIMER_TASK_STOP);
+	APP_ERROR_CHECK(nrf_drv_ppi_channel_alloc(&pulse_stop_channel));
+	APP_ERROR_CHECK(nrf_drv_ppi_channel_assign(pulse_stop_channel, pulse_stop_event_addr, pulse_stop_task_addr));
 }
 
 void stimulate_service_on_ble_event(ble_evt_t* event)
@@ -469,9 +476,20 @@ static void round_start_on(void)
 
 	// init, configure and start timer
 	APP_ERROR_CHECK(nrf_drv_timer_init(&train_timer, &timer_cfg, round_handle_timer_event));
-	nrf_drv_timer_extended_compare(&train_timer,
-			NRF_TIMER_CC_CHANNEL0, timer_next_compare,
-			NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK | NRF_TIMER_SHORT_COMPARE0_STOP_MASK, true);
+	if(train_timer_remaining == 0)
+	{
+		APP_ERROR_CHECK(nrf_drv_ppi_channel_enable(pulse_stop_channel));
+		nrf_drv_timer_extended_compare(&train_timer,
+				NRF_TIMER_CC_CHANNEL0, timer_next_compare,
+				NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK | NRF_TIMER_SHORT_COMPARE0_STOP_MASK, true);
+	}
+	else
+	{
+		APP_ERROR_CHECK(nrf_drv_ppi_channel_disable(pulse_stop_channel));
+		nrf_drv_timer_extended_compare(&train_timer,
+				NRF_TIMER_CC_CHANNEL0, timer_next_compare,
+				NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
+	}
 	train_timer_state = TIMER_RUNNING;
 	nrf_drv_timer_enable(&train_timer);
 
@@ -498,9 +516,18 @@ static void round_start_off(void)
 
 	// init, configure and start timer
 	APP_ERROR_CHECK(nrf_drv_timer_init(&train_timer, &timer_cfg, round_handle_timer_event));
-	nrf_drv_timer_extended_compare(&train_timer,
-			NRF_TIMER_CC_CHANNEL0, timer_next_compare,
-			NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK | NRF_TIMER_SHORT_COMPARE0_STOP_MASK, true);
+	if(train_timer_remaining == 0)
+	{
+		nrf_drv_timer_extended_compare(&train_timer,
+				NRF_TIMER_CC_CHANNEL0, timer_next_compare,
+				NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK | NRF_TIMER_SHORT_COMPARE0_STOP_MASK, true);
+	}
+	else
+	{
+		nrf_drv_timer_extended_compare(&train_timer,
+				NRF_TIMER_CC_CHANNEL0, timer_next_compare,
+				NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
+	}
 	train_timer_state = TIMER_RUNNING;
 	nrf_drv_timer_enable(&train_timer);
 }
@@ -519,23 +546,22 @@ static void round_handle_timer_event(nrf_timer_event_t event_type, void* context
 	switch(event_type)
 	{
 		case NRF_TIMER_EVENT_COMPARE0:
-			if(train_timer_state == TIMER_RUNNING)
-			{
-				nrf_drv_timer_disable(&train_timer);
-				train_timer_state = TIMER_STOPPED;
-			}
-
 			if(train_timer_remaining)
 			{
 				uint16_t timer_next_compare = round_compute_timer_compare(&train_timer_remaining);
-
 				nrf_drv_timer_compare(&train_timer, NRF_TIMER_CC_CHANNEL0, timer_next_compare, true);
 
-				train_timer_state = TIMER_RUNNING;
-				nrf_drv_timer_enable(&train_timer);
+				if(train_timer_remaining == 0)
+				{
+					APP_ERROR_CHECK(nrf_drv_ppi_channel_enable(pulse_stop_channel));
+					nrf_timer_shorts_enable(train_timer.p_reg, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+				}
 			}
 			else
 			{
+				nrf_drv_timer_disable(&train_timer);
+				train_timer_state = TIMER_STOPPED;
+
 				void (*start_next_timer)() = context;
 
 				if(start_next_timer == round_start_off)
@@ -590,10 +616,19 @@ static uint16_t round_compute_timer_compare(uint32_t* remaining)
 
 	uint16_t ret;
 
+	// maximize the compare value so that we don't try to measure very small
+	// time intervals while the timer is running (STOP shortcut is disabled)
+	// this is done by equally dividing an interval between the current compare
+	// threshold and the next when possible
 	if(*remaining < (1 << 16))
 	{
 		ret = *remaining;
 		*remaining = 0;
+	}
+	else if(*remaining < 2 * (1 << 16))
+	{
+		ret = *remaining / 2;
+		*remaining -= ret;
 	}
 	else
 	{
