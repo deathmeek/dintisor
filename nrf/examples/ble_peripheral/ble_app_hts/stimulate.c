@@ -111,7 +111,6 @@ static ble_gatts_char_handles_t t_negative_pause_handle;
 static ble_gatts_char_handles_t amplitude_handle;
 
 static uint8_t stimulate_value = 0;
-static uint8_t stimulate_prev = 0;
 static uint32_t t_total_value = 0;
 static uint32_t t_pulse_value = 0;
 static uint32_t t_pause_value = 0;
@@ -140,6 +139,7 @@ static volatile round_state_t round_state;
 static uint32_t train_timer_remaining;
 
 APP_TIMER_DEF(timer);
+static volatile timer_state_t activ_timer_state;
 
 
 void stimulate_service_init(void)
@@ -398,28 +398,10 @@ static void stimulate_service_on_gatts_write_event(ble_gatts_evt_write_t* event)
 
 static void stimulate_service_on_gatts_write_activ_params(void)
 {
-	// normalize to boolean
-	stimulate_value = !!stimulate_value;
-
-	// starting and stopping are not idempotent
-	// only call them on state transition
-	if(stimulate_value && !stimulate_prev)
-	{
+	if(stimulate_value)
 		activ_start();
-
-		uint32_t ticks = APP_TIMER_TICKS(t_total_value / 1000, 0);
-		if(ticks > 0 && ticks < APP_TIMER_MIN_TIMEOUT_TICKS)
-			ticks = APP_TIMER_MIN_TIMEOUT_TICKS;
-		if(ticks > 0)
-			APP_ERROR_CHECK(app_timer_start(timer, ticks, NULL));
-	}
-	else if(!stimulate_value && stimulate_prev)
-	{
+	else
 		activ_stop();
-
-		APP_ERROR_CHECK(app_timer_stop(timer));
-	}
-	stimulate_prev = stimulate_value;
 }
 
 static void stimulate_service_on_gatts_write_round_params(void)
@@ -434,28 +416,71 @@ static void stimulate_service_on_gatts_write_pulse_params(void)
 
 static void activ_start(void)
 {
+	// protect against concurrent execution with active_stop
+	CRITICAL_REGION_ENTER();
+
+	if(activ_timer_state == TIMER_RUNNING)
+		goto end;
+
+	stimulate_value = true;
+
 #if defined(BOARD_PCA10028) || defined(BOARD_PCA10031) || defined(BOARD_PCA10040) || defined(BOARD_SPARROW_BLE)
 	// enable stimulation voltage source
 	NRF_GPIO->OUTSET = (1 << enable_pin);
 #endif
 
 	round_start(ROUND_PAUSE);
+
+	// compute active timer ticks
+	uint32_t ticks = APP_TIMER_TICKS(t_total_value / 1000, 0);
+	if(ticks > 0 && ticks < APP_TIMER_MIN_TIMEOUT_TICKS)
+		ticks = APP_TIMER_MIN_TIMEOUT_TICKS;
+	t_total_value = (uint64_t)ticks * 1000000 / APP_TIMER_CLOCK_FREQ;
+
+	activ_timer_state = TIMER_RUNNING;
+	if(ticks > 0)						// 0 ticks == infinite timeout
+		APP_ERROR_CHECK(app_timer_start(timer, ticks, NULL));
+
+end:
+	CRITICAL_REGION_EXIT();
 }
 
 static void activ_stop(void)
 {
+	// protect against concurrent execution from scheduler or timer event
+	CRITICAL_REGION_ENTER();
+
+	if(activ_timer_state == TIMER_STOPPED)
+		goto end;
+
 	round_stop();
+
+	APP_ERROR_CHECK(app_timer_stop(timer));
+	activ_timer_state = TIMER_STOPPED;
 
 #if defined(BOARD_PCA10028) || defined(BOARD_PCA10031) || defined(BOARD_PCA10040) || defined(BOARD_SPARROW_BLE)
 	// disable stimulation voltage source
 	NRF_GPIO->OUTCLR = (1 << enable_pin);
 #endif
+
+	stimulate_value = false;
+
+end:
+	CRITICAL_REGION_EXIT();
 }
 
 static void activ_handle_timer_event(void* context)
 {
+	// protect against concurrent execution with activ_start and activ_stop
+	CRITICAL_REGION_ENTER();
+
+	if(activ_timer_state != TIMER_RUNNING)
+		goto end;
+
 	activ_stop();
-	stimulate_prev = stimulate_value = 0;
+
+end:
+	CRITICAL_REGION_EXIT();
 }
 
 static void round_start(round_state_t prev_round_state)
