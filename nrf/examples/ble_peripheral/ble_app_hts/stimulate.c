@@ -5,6 +5,9 @@
  *      Author: dan
  */
 
+#define NRF_LOG_MODULE_NAME "STIM"
+
+
 #include <nrf.h>
 #ifdef NRF51
 #include <nrf_drv_adc.h>
@@ -15,6 +18,7 @@
 #include <nrf_drv_gpiote.h>
 #include <nrf_drv_ppi.h>
 #include <nrf_drv_timer.h>
+#include <nrf_log.h>
 #include <nrf_soc.h>
 
 #include <app_error.h>
@@ -29,10 +33,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-
-#define NRF_LOG_MODULE_NAME "STIM"
-#include "nrf_log.h"
-#include "nrf_log_ctrl.h"
 
 
 typedef enum {
