@@ -14,14 +14,19 @@
 #include "sense.h"
 #include "stimulate.h"
 
+#include <app_error.h>
+#include <app_scheduler.h>
+#include <app_timer_appsh.h>
+#include <app_util_platform.h>
+
+#include <softdevice_handler_appsh.h>
+
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include "nordic_common.h"
 #include "nrf.h"
-#include "app_error.h"
-#include "app_util_platform.h"
 #include "nrf_gpio.h"
 #ifdef NRF51
 #include "nrf_drv_adc.h"
@@ -37,8 +42,6 @@
 #include "ble_dis.h"
 #include "ble_conn_params.h"
 #include "boards.h"
-#include "softdevice_handler.h"
-#include "app_timer.h"
 #include "peer_manager.h"
 #include "bsp.h"
 #include "bsp_btn_ble.h"
@@ -455,7 +458,7 @@ static void timers_init(void)
     uint32_t err_code;
 
     // Initialize timer module.
-    APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_OP_QUEUE_SIZE, false);
+    APP_TIMER_APPSH_INIT(APP_TIMER_PRESCALER, APP_TIMER_OP_QUEUE_SIZE, true);
 
     // Create timers.
     err_code = app_timer_create(&m_battery_timer_id,
@@ -787,7 +790,7 @@ static void ble_stack_init(void)
     nrf_clock_lf_cfg_t clock_lf_cfg = NRF_CLOCK_LFCLKSRC;
 
     // Initialize the SoftDevice handler module.
-    SOFTDEVICE_HANDLER_INIT(&clock_lf_cfg, NULL);
+    SOFTDEVICE_HANDLER_APPSH_INIT(&clock_lf_cfg, true);
 
     ble_enable_params_t ble_enable_params;
     err_code = softdevice_enable_get_default_config(CENTRAL_LINK_COUNT,
@@ -969,6 +972,15 @@ static void buttons_leds_init(bool * p_erase_bonds)
 }
 
 
+/**@brief Function for initializing the scheduler module.
+ *
+ */
+static void scheduler_init(void)
+{
+	APP_SCHED_INIT(MAX(BLE_STACK_EVT_MSG_BUF_SIZE, APP_TIMER_SCHED_EVT_SIZE), 10);
+}
+
+
 /**@brief Function for the Power manager.
  */
 static void power_manage(void)
@@ -1003,6 +1015,7 @@ int main(void)
     timers_init();
     buttons_leds_init(&erase_bonds);
     ble_stack_init();
+    scheduler_init();
     peer_manager_init(erase_bonds);
     if (erase_bonds == true)
     {
@@ -1026,6 +1039,7 @@ int main(void)
     // Enter main loop.
     for (;;)
     {
+    	app_sched_execute();
         if (NRF_LOG_PROCESS() == false)
         {
             power_manage();
