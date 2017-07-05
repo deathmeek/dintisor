@@ -52,9 +52,9 @@ static void stimulate_service_on_gatts_write_activ_params(void);
 static void stimulate_service_on_gatts_write_round_params(void);
 static void stimulate_service_on_gatts_write_pulse_params(void);
 
-static void activ_start(void);
-static void activ_stop(void);
-static void activ_handle_timer_event(void*);
+static void active_start(void);
+static void active_stop(void);
+static void active_handle_timer_event(void*);
 
 static void round_start(round_state_t);
 static void round_stop(void);
@@ -123,23 +123,23 @@ static uint32_t amplitude_value = 0;
 static uint16_t conn_handle = BLE_CONN_HANDLE_INVALID;
 
 // must update compute_timer_compare when changing timer configuration
-static const nrf_drv_timer_t stimulate_timer = NRF_DRV_TIMER_INSTANCE(1);
-static const nrf_drv_timer_config_t stimulate_timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
+static const nrf_drv_timer_t pulse_timer = NRF_DRV_TIMER_INSTANCE(1);
+static const nrf_drv_timer_config_t pulse_timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
 static volatile timer_state_t pulse_timer_state;
 static nrf_ppi_channel_t pulse_stop_channel;
-static volatile uint16_t compare0;
-static volatile uint16_t compare1;
-static volatile uint16_t compare2;
-static volatile uint16_t compare3;
+static volatile uint16_t pulse_compare0;
+static volatile uint16_t pulse_compare1;
+static volatile uint16_t pulse_compare2;
+static volatile uint16_t pulse_compare3;
 
-static const nrf_drv_timer_t train_timer = NRF_DRV_TIMER_INSTANCE(2);
-static const nrf_drv_timer_config_t train_timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
-static volatile timer_state_t train_timer_state;
+static const nrf_drv_timer_t round_timer = NRF_DRV_TIMER_INSTANCE(2);
+static const nrf_drv_timer_config_t round_timer_cfg = NRF_DRV_TIMER_DEFAULT_CONFIG;
+static volatile timer_state_t round_timer_state;
 static volatile round_state_t round_state;
-static uint32_t train_timer_remaining;
+static uint32_t round_remaining;
 
-APP_TIMER_DEF(timer);
-static volatile timer_state_t activ_timer_state;
+APP_TIMER_DEF(active_timer);
+static volatile timer_state_t active_timer_state;
 
 
 void stimulate_service_init(void)
@@ -203,7 +203,7 @@ void stimulate_service_init(void)
 	stimulate_service_add_characteristic(&amplitude_uuid, &amplitude_handle, &amplitude_value, sizeof(amplitude_value));
 
 	// init stimulation timer
-	err_code = app_timer_create(&timer, APP_TIMER_MODE_SINGLE_SHOT, activ_handle_timer_event);
+	err_code = app_timer_create(&active_timer, APP_TIMER_MODE_SINGLE_SHOT, active_handle_timer_event);
 	APP_ERROR_CHECK(err_code);
 
 	// init GPIO task and events module
@@ -218,11 +218,11 @@ void stimulate_service_init(void)
 	APP_ERROR_CHECK(err_code);
 
 	// init round tracking timer module
-	err_code = nrf_drv_timer_init(&train_timer, &train_timer_cfg, round_handle_timer_event);
+	err_code = nrf_drv_timer_init(&round_timer, &round_timer_cfg, round_handle_timer_event);
 	APP_ERROR_CHECK(err_code);
 
 	// init pulse generation timer module
-	err_code = nrf_drv_timer_init(&stimulate_timer, &stimulate_timer_cfg, pulse_handle_timer_event);
+	err_code = nrf_drv_timer_init(&pulse_timer, &pulse_timer_cfg, pulse_handle_timer_event);
 	APP_ERROR_CHECK(err_code);
 
 	// configure electrode(s) when GPIOTE is inactive
@@ -254,15 +254,15 @@ void stimulate_service_init(void)
 
 	// configure channel used for pulse counting
 	nrf_ppi_channel_t pulse_count_channel;
-	uint32_t pulse_count_event_addr = nrf_drv_timer_event_address_get(&stimulate_timer, NRF_TIMER_EVENT_COMPARE3);
-	uint32_t pulse_count_task_addr = nrf_drv_timer_task_address_get(&train_timer, NRF_TIMER_TASK_COUNT);
+	uint32_t pulse_count_event_addr = nrf_drv_timer_event_address_get(&pulse_timer, NRF_TIMER_EVENT_COMPARE3);
+	uint32_t pulse_count_task_addr = nrf_drv_timer_task_address_get(&round_timer, NRF_TIMER_TASK_COUNT);
 	APP_ERROR_CHECK(nrf_drv_ppi_channel_alloc(&pulse_count_channel));
 	APP_ERROR_CHECK(nrf_drv_ppi_channel_assign(pulse_count_channel, pulse_count_event_addr, pulse_count_task_addr));
 	APP_ERROR_CHECK(nrf_drv_ppi_channel_enable(pulse_count_channel));
 
 	// configure channel used for pulse stopping
-	uint32_t pulse_stop_event_addr = nrf_drv_timer_event_address_get(&train_timer, NRF_TIMER_EVENT_COMPARE0);
-	uint32_t pulse_stop_task_addr = nrf_drv_timer_task_address_get(&stimulate_timer, NRF_TIMER_TASK_STOP);
+	uint32_t pulse_stop_event_addr = nrf_drv_timer_event_address_get(&round_timer, NRF_TIMER_EVENT_COMPARE0);
+	uint32_t pulse_stop_task_addr = nrf_drv_timer_task_address_get(&pulse_timer, NRF_TIMER_TASK_STOP);
 	APP_ERROR_CHECK(nrf_drv_ppi_channel_alloc(&pulse_stop_channel));
 	APP_ERROR_CHECK(nrf_drv_ppi_channel_assign(pulse_stop_channel, pulse_stop_event_addr, pulse_stop_task_addr));
 }
@@ -399,9 +399,9 @@ static void stimulate_service_on_gatts_write_event(ble_gatts_evt_write_t* event)
 static void stimulate_service_on_gatts_write_activ_params(void)
 {
 	if(stimulate_value)
-		activ_start();
+		active_start();
 	else
-		activ_stop();
+		active_stop();
 }
 
 static void stimulate_service_on_gatts_write_round_params(void)
@@ -414,12 +414,12 @@ static void stimulate_service_on_gatts_write_pulse_params(void)
 	pulse_compute_timer_config();
 }
 
-static void activ_start(void)
+static void active_start(void)
 {
 	// protect against concurrent execution with active_stop
 	CRITICAL_REGION_ENTER();
 
-	if(activ_timer_state == TIMER_RUNNING)
+	if(active_timer_state == TIMER_RUNNING)
 		goto end;
 
 	stimulate_value = true;
@@ -437,26 +437,26 @@ static void activ_start(void)
 		ticks = APP_TIMER_MIN_TIMEOUT_TICKS;
 	t_total_value = (uint64_t)ticks * 1000000 / APP_TIMER_CLOCK_FREQ;
 
-	activ_timer_state = TIMER_RUNNING;
+	active_timer_state = TIMER_RUNNING;
 	if(ticks > 0)						// 0 ticks == infinite timeout
-		APP_ERROR_CHECK(app_timer_start(timer, ticks, NULL));
+		APP_ERROR_CHECK(app_timer_start(active_timer, ticks, NULL));
 
 end:
 	CRITICAL_REGION_EXIT();
 }
 
-static void activ_stop(void)
+static void active_stop(void)
 {
 	// protect against concurrent execution from scheduler or timer event
 	CRITICAL_REGION_ENTER();
 
-	if(activ_timer_state == TIMER_STOPPED)
+	if(active_timer_state == TIMER_STOPPED)
 		goto end;
 
 	round_stop();
 
-	APP_ERROR_CHECK(app_timer_stop(timer));
-	activ_timer_state = TIMER_STOPPED;
+	APP_ERROR_CHECK(app_timer_stop(active_timer));
+	active_timer_state = TIMER_STOPPED;
 
 #if defined(BOARD_PCA10028) || defined(BOARD_PCA10031) || defined(BOARD_PCA10040) || defined(BOARD_SPARROW_BLE)
 	// disable stimulation voltage source
@@ -469,15 +469,15 @@ end:
 	CRITICAL_REGION_EXIT();
 }
 
-static void activ_handle_timer_event(void* context)
+static void active_handle_timer_event(void* context)
 {
 	// protect against concurrent execution with activ_start and activ_stop
 	CRITICAL_REGION_ENTER();
 
-	if(activ_timer_state != TIMER_RUNNING)
+	if(active_timer_state != TIMER_RUNNING)
 		goto end;
 
-	activ_stop();
+	active_stop();
 
 end:
 	CRITICAL_REGION_EXIT();
@@ -488,7 +488,7 @@ static void round_start(round_state_t prev_round_state)
 	// protect against concurrent execution from scheduler or train_timer handler
 	CRITICAL_REGION_ENTER();
 
-	if(train_timer_state == TIMER_RUNNING)
+	if(round_timer_state == TIMER_RUNNING)
 		goto end;
 
 	// compute total remaining timer counts
@@ -497,7 +497,7 @@ static void round_start(round_state_t prev_round_state)
 		do {
 			case ROUND_PAUSE:
 				round_state = ROUND_PULSE;
-				train_timer_remaining = round_compute_timer_count(&t_pulse_value);
+				round_remaining = round_compute_timer_count(&t_pulse_value);
 
 				if(t_pulse_value != 0)	// pulse round doesn't have zero duration
 					break;
@@ -509,7 +509,7 @@ static void round_start(round_state_t prev_round_state)
 
 			case ROUND_PULSE:
 				round_state = ROUND_PAUSE;
-				train_timer_remaining = round_compute_timer_count(&t_pause_value);
+				round_remaining = round_compute_timer_count(&t_pause_value);
 
 				if(t_pause_value != 0)	// pause round doesn't have zero duration
 					break;
@@ -522,11 +522,11 @@ static void round_start(round_state_t prev_round_state)
 	}
 
 	// compute and setup next compare threshold
-	uint16_t timer_next_compare = round_compute_timer_compare(&train_timer_remaining);
+	uint16_t timer_next_compare = round_compute_timer_compare(&round_remaining);
 	nrf_timer_short_mask_t timer_compare_action = NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK;
-	timer_compare_action |= train_timer_remaining != 0 ? 0 :
+	timer_compare_action |= round_remaining != 0 ? 0 :
 			NRF_TIMER_SHORT_COMPARE0_STOP_MASK;		// on last sub-round stop the timer
-	nrf_drv_timer_extended_compare(&train_timer,
+	nrf_drv_timer_extended_compare(&round_timer,
 			NRF_TIMER_CC_CHANNEL0, timer_next_compare,
 			timer_compare_action, true);
 
@@ -535,7 +535,7 @@ static void round_start(round_state_t prev_round_state)
 	{
 		case ROUND_PULSE:
 			// setup pulse timer stopping
-			if(train_timer_remaining == 0)	// there will be only one sub-round
+			if(round_remaining == 0)	// there will be only one sub-round
 				APP_ERROR_CHECK(nrf_drv_ppi_channel_enable(pulse_stop_channel));
 			else							// this is not the last sub-round
 				APP_ERROR_CHECK(nrf_drv_ppi_channel_disable(pulse_stop_channel));
@@ -547,8 +547,8 @@ static void round_start(round_state_t prev_round_state)
 			break;
 	}
 
-	train_timer_state = TIMER_RUNNING;
-	nrf_drv_timer_enable(&train_timer);
+	round_timer_state = TIMER_RUNNING;
+	nrf_drv_timer_enable(&round_timer);
 
 end:
 	CRITICAL_REGION_EXIT();
@@ -559,16 +559,16 @@ static void round_stop(void)
 	// protect against concurrent execution from scheduler or train_timer handler
 	CRITICAL_REGION_ENTER();
 
-	if(train_timer_state == TIMER_STOPPED)
+	if(round_timer_state == TIMER_STOPPED)
 		goto end;
 
 	pulse_stop();
 
-	nrf_drv_timer_disable(&train_timer);
-	train_timer_state = TIMER_STOPPED;
+	nrf_drv_timer_disable(&round_timer);
+	round_timer_state = TIMER_STOPPED;
 
 	// clear pending event, if any, to stop handler from firing
-	nrf_timer_event_clear(train_timer.p_reg, nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL0));
+	nrf_timer_event_clear(round_timer.p_reg, nrf_timer_compare_event_get(NRF_TIMER_CC_CHANNEL0));
 
 end:
 	CRITICAL_REGION_EXIT();
@@ -579,24 +579,24 @@ static void round_handle_timer_event(nrf_timer_event_t event_type, void* context
 	// protect against concurrent execution with round_start or round_stop
 	CRITICAL_REGION_ENTER();
 
-	ASSERT("Handler shouldn't fire when timer is not running" && train_timer_state == TIMER_RUNNING);
+	ASSERT("Handler shouldn't fire when timer is not running" && round_timer_state == TIMER_RUNNING);
 
 	switch(event_type)
 	{
 		case NRF_TIMER_EVENT_COMPARE0:
-			if(train_timer_remaining != 0)		// this was not the last sub-round
+			if(round_remaining != 0)		// this was not the last sub-round
 			{
 				// update compare threshold for next sub-round
-				uint16_t timer_next_compare = round_compute_timer_compare(&train_timer_remaining);
-				nrf_drv_timer_compare(&train_timer, NRF_TIMER_CC_CHANNEL0, timer_next_compare, true);
+				uint16_t timer_next_compare = round_compute_timer_compare(&round_remaining);
+				nrf_drv_timer_compare(&round_timer, NRF_TIMER_CC_CHANNEL0, timer_next_compare, true);
 
-				if(train_timer_remaining == 0)	// this will be the last sub-round
+				if(round_remaining == 0)	// this will be the last sub-round
 				{
 					// enable pulse timer stopping just in case it's a pulse round
 					APP_ERROR_CHECK(nrf_drv_ppi_channel_enable(pulse_stop_channel));
 
 					// stop timer at the end of the round
-					nrf_timer_shorts_enable(train_timer.p_reg, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+					nrf_timer_shorts_enable(round_timer.p_reg, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
 				}
 			}
 			else
@@ -615,7 +615,7 @@ static void round_handle_timer_event(nrf_timer_event_t event_type, void* context
 
 static uint32_t round_compute_timer_count(uint32_t* value)
 {
-	const uint32_t period = 1000000 / (16000000 / (1 << train_timer_cfg.frequency));
+	const uint32_t period = 1000000 / (16000000 / (1 << round_timer_cfg.frequency));
 
 	if(*value == 0)
 		return 0;
@@ -680,7 +680,7 @@ static void pulse_start(void)
 	pulse_update(pulse_timer_state);
 
 	pulse_timer_state = TIMER_RUNNING;
-	nrf_drv_timer_enable(&stimulate_timer);
+	nrf_drv_timer_enable(&pulse_timer);
 
 end:
 	CRITICAL_REGION_EXIT();
@@ -695,7 +695,7 @@ static void pulse_stop(void)
 		goto end;
 
 	// disable timer
-	nrf_drv_timer_disable(&stimulate_timer);
+	nrf_drv_timer_disable(&pulse_timer);
 	pulse_timer_state = TIMER_STOPPED;
 
 	// make sure electrode(s) are disabled
@@ -721,23 +721,23 @@ static void pulse_update(timer_state_t timer_state)
 	{
 		case TIMER_STOPPED:
 			// update pulse configuration
-			nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL0, compare0, false);
-			nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL1, compare1, false);
-			nrf_drv_timer_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL2, compare2, false);
-			nrf_drv_timer_extended_compare(&stimulate_timer, NRF_TIMER_CC_CHANNEL3, compare3, NRF_TIMER_SHORT_COMPARE3_CLEAR_MASK, false);
+			nrf_drv_timer_compare(&pulse_timer, NRF_TIMER_CC_CHANNEL0, pulse_compare0, false);
+			nrf_drv_timer_compare(&pulse_timer, NRF_TIMER_CC_CHANNEL1, pulse_compare1, false);
+			nrf_drv_timer_compare(&pulse_timer, NRF_TIMER_CC_CHANNEL2, pulse_compare2, false);
+			nrf_drv_timer_extended_compare(&pulse_timer, NRF_TIMER_CC_CHANNEL3, pulse_compare3, NRF_TIMER_SHORT_COMPARE3_CLEAR_MASK, false);
 
 			// pulse pin toggling doesn't work if duration is 0, replace with task disabling
 #if defined(BOARD_PCA10028) || defined(BOARD_PCA10031) || defined(BOARD_PCA10040) || defined(BOARD_SPARROW_BLE)
-			if(compare0 != compare1)
+			if(pulse_compare0 != pulse_compare1)
 				nrf_drv_gpiote_out_task_enable((nrf_drv_gpiote_pin_t)positive_pin);
 			else
 				nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)positive_pin);
-			if(compare2 != compare3)
+			if(pulse_compare2 != pulse_compare3)
 				nrf_drv_gpiote_out_task_enable((nrf_drv_gpiote_pin_t)negative_pin);
 			else
 				nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)negative_pin);
 #elif defined(BOARD_TOOTH)
-			if(compare0 != compare1)
+			if(pulse_compare0 != pulse_compare1)
 				nrf_drv_gpiote_out_task_enable((nrf_drv_gpiote_pin_t)stimulation_pin);
 			else
 				nrf_drv_gpiote_out_task_disable((nrf_drv_gpiote_pin_t)stimulation_pin);
@@ -762,14 +762,14 @@ static void pulse_config_pin(nrf_drv_gpiote_pin_t pin,
 
 	// configure first toggle PPI channel
 	nrf_ppi_channel_t first_toggle_channel;
-	uint32_t first_event_addr = nrf_drv_timer_event_address_get(&stimulate_timer, first_toggle_event);
+	uint32_t first_event_addr = nrf_drv_timer_event_address_get(&pulse_timer, first_toggle_event);
 	uint32_t first_task_addr = nrf_drv_gpiote_out_task_addr_get(pin);
 	APP_ERROR_CHECK(nrf_drv_ppi_channel_alloc(&first_toggle_channel));
 	APP_ERROR_CHECK(nrf_drv_ppi_channel_assign(first_toggle_channel, first_event_addr, first_task_addr));
 
 	// configure second toggle PPI channel
 	nrf_ppi_channel_t second_toggle_channel;
-	uint32_t second_event_addr = nrf_drv_timer_event_address_get(&stimulate_timer, second_toggle_event);
+	uint32_t second_event_addr = nrf_drv_timer_event_address_get(&pulse_timer, second_toggle_event);
 	uint32_t second_task_addr = nrf_drv_gpiote_out_task_addr_get(pin);
 	APP_ERROR_CHECK(nrf_drv_ppi_channel_alloc(&second_toggle_channel));
 	APP_ERROR_CHECK(nrf_drv_ppi_channel_assign(second_toggle_channel, second_event_addr, second_task_addr));
@@ -792,21 +792,21 @@ static void pulse_compute_timer_config(void)
 	// positive pulse
 	if(t_positive_pause_value == 0 && t_positive_pulse_value != 0)	// no pulse without pause
 		t_positive_pause_value++;
-	compare0 = pulse_compute_timer_compare(&t_positive_pause_value) + 0;
-	compare1 = pulse_compute_timer_compare(&t_positive_pulse_value) + compare0;
+	pulse_compare0 = pulse_compute_timer_compare(&t_positive_pause_value) + 0;
+	pulse_compare1 = pulse_compute_timer_compare(&t_positive_pulse_value) + pulse_compare0;
 
 	// negative pulse
 	if(t_negative_pause_value == 0 && t_negative_pulse_value != 0)	// no pulse without pause
 		t_negative_pause_value++;
-	compare2 = pulse_compute_timer_compare(&t_negative_pause_value) + compare1;
-	compare3 = pulse_compute_timer_compare(&t_negative_pulse_value) + compare2;
+	pulse_compare2 = pulse_compute_timer_compare(&t_negative_pause_value) + pulse_compare1;
+	pulse_compare3 = pulse_compute_timer_compare(&t_negative_pulse_value) + pulse_compare2;
 
 	CRITICAL_REGION_EXIT();
 }
 
 static uint16_t pulse_compute_timer_compare(uint32_t* value)
 {
-	const uint32_t min_value = 1000000 / (16000000 / (1 << stimulate_timer_cfg.frequency));
+	const uint32_t min_value = 1000000 / (16000000 / (1 << pulse_timer_cfg.frequency));
 	const uint32_t max_value = ((1 << 16) * min_value) / 4;
 
 	if(*value == 0)
