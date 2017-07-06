@@ -19,6 +19,10 @@
 #include <app_timer_appsh.h>
 #include <app_util_platform.h>
 
+#include <ble_advdata.h>
+#include <ble_advertising.h>
+#include <ble_conn_params.h>
+
 #include <softdevice_handler_appsh.h>
 
 #include <inttypes.h>
@@ -37,10 +41,7 @@
 #include "ble.h"
 #include "ble_hci.h"
 #include "ble_srv_common.h"
-#include "ble_advdata.h"
-#include "ble_advertising.h"
 #include "ble_dis.h"
-#include "ble_conn_params.h"
 #include "boards.h"
 #include "peer_manager.h"
 #include "bsp.h"
@@ -73,20 +74,8 @@
 #define MANUFACTURER_ID                 0x1122334455                                /**< Manufacturer ID, part of System ID. Will be passed to Device Information Service. */
 #define ORG_UNIQUE_ID                   0x667788                                    /**< Organizational Unique ID, part of System ID. Will be passed to Device Information Service. */
 
-#define APP_ADV_INTERVAL                40                                          /**< The advertising interval (in units of 0.625 ms. This value corresponds to 25 ms). */
-#define APP_ADV_TIMEOUT_IN_SECONDS      180                                         /**< The advertising timeout in units of seconds. */
-
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
-
-#define MIN_CONN_INTERVAL               MSEC_TO_UNITS(500, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.5 seconds) */
-#define MAX_CONN_INTERVAL               MSEC_TO_UNITS(1000, UNIT_1_25_MS)           /**< Maximum acceptable connection interval (1 second). */
-#define SLAVE_LATENCY                   0                                           /**< Slave latency. */
-#define CONN_SUP_TIMEOUT                MSEC_TO_UNITS(4000, UNIT_10_MS)             /**< Connection supervisory timeout (4 seconds). */
-
-#define FIRST_CONN_PARAMS_UPDATE_DELAY  APP_TIMER_TICKS(5000, APP_TIMER_PRESCALER)  /**< Time from initiating event (connect or start of indication) to first time sd_ble_gap_conn_param_update is called (5 seconds). */
-#define NEXT_CONN_PARAMS_UPDATE_DELAY   APP_TIMER_TICKS(30000, APP_TIMER_PRESCALER) /**< Time between each call to sd_ble_gap_conn_param_update after the first call (30 seconds). */
-#define MAX_CONN_PARAMS_UPDATE_COUNT    3                                           /**< Number of attempts before giving up the connection parameter negotiation. */
 
 #define SEC_PARAM_BOND                  1                                           /**< Perform bonding. */
 #define SEC_PARAM_MITM                  0                                           /**< Man In The Middle protection not required. */
@@ -109,13 +98,125 @@ APP_TIMER_DEF(m_battery_timer_id);                                              
 static ble_uuid_t m_adv_uuids[] =       {{BLE_UUID_BATTERY_SERVICE, BLE_UUID_TYPE_BLE},
                                         {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}};  /**< Universally unique service identifiers. */
 
-static void advertising_start(void);
 #ifdef NRF51
 static void adc_event_handler(nrf_drv_adc_evt_t const *);
 #endif /* NRF51 */
 #ifdef NRF52
 static void adc_event_handler(nrf_drv_saadc_evt_t const *);
 #endif /* NRF52 */
+
+static void advertising_init(void);
+static void advertising_start(void);
+static void advertising_event_handler(ble_adv_evt_t);
+
+static void conn_params_init(void);
+static void conn_params_error_handler(uint32_t);
+
+
+/**@brief Function for initializing the Advertising functionality.
+ *
+ * @details Encodes the required advertising data and passes it to the stack.
+ *          Also builds a structure to be passed to the stack when starting advertising.
+ */
+static void advertising_init(void)
+{
+    ble_advdata_t			advdata;
+    ble_advdata_t			srdata;
+    ble_adv_modes_config_t	options;
+
+    // advertising data
+    memset(&advdata, 0, sizeof(advdata));
+    advdata.name_type				= BLE_ADVDATA_FULL_NAME;
+    advdata.include_appearance		= true;
+    advdata.flags					= BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
+    advdata.uuids_complete.uuid_cnt	= sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
+    advdata.uuids_complete.p_uuids	= m_adv_uuids;
+
+    // scan response data
+    memset(&srdata, 0, sizeof(srdata));
+    srdata.uuids_complete.uuid_cnt	= 0;
+
+    // module configuration
+    memset(&options, 0, sizeof(options));
+    options.ble_adv_fast_enabled	= true;
+    options.ble_adv_fast_interval	= MSEC_TO_UNITS(1000, UNIT_0_625_MS);	// 1s
+    options.ble_adv_fast_timeout	= 30;									// seconds
+    options.ble_adv_slow_enabled	= true;
+    options.ble_adv_slow_interval	= MSEC_TO_UNITS(10240, UNIT_0_625_MS);	// 10.24s (maximum)
+    options.ble_adv_slow_timeout	= 0;									// no timeout
+
+    APP_ERROR_CHECK(ble_advertising_init(&advdata, &srdata, &options, advertising_event_handler, NULL));
+}
+
+/**@brief Function for starting advertising.
+ */
+static void advertising_start(void)
+{
+	APP_ERROR_CHECK(ble_advertising_start(BLE_ADV_MODE_FAST));
+}
+
+/**@brief Function for handling advertising events.
+ *
+ * @details This function will be called for advertising events which are passed to the application.
+ *
+ * @param[in] ble_adv_evt  Advertising event.
+ */
+static void advertising_event_handler(ble_adv_evt_t ble_adv_evt)
+{
+    switch (ble_adv_evt)
+    {
+        case BLE_ADV_EVT_FAST:
+            NRF_LOG_INFO("Fast advertising\r\n");
+            APP_ERROR_CHECK(bsp_indication_set(BSP_INDICATE_ADVERTISING));
+            break;
+
+        case BLE_ADV_EVT_SLOW:
+            NRF_LOG_INFO("Slow advertising\r\n");
+            APP_ERROR_CHECK(bsp_indication_set(BSP_INDICATE_ADVERTISING));
+            break;
+
+        default:
+            break;
+    }
+}
+
+
+/**@brief Function for initializing the Connection Parameters module.
+ */
+static void conn_params_init(void)
+{
+    ble_gap_conn_params_t	gap_conn_params;
+    ble_conn_params_init_t	cp_init;
+
+    // desired connection parameters
+    memset(&gap_conn_params, 0, sizeof(gap_conn_params));
+    gap_conn_params.min_conn_interval		= MSEC_TO_UNITS(975, UNIT_1_25_MS);		// 975ms
+    gap_conn_params.max_conn_interval		= MSEC_TO_UNITS(1000, UNIT_1_25_MS);	// 1000ms
+    gap_conn_params.slave_latency			= 1;
+    gap_conn_params.conn_sup_timeout		= MSEC_TO_UNITS(6000, UNIT_10_MS);		// 6000ms
+
+    // module configuration
+    memset(&cp_init, 0, sizeof(cp_init));
+    cp_init.p_conn_params					= &gap_conn_params;
+    cp_init.first_conn_params_update_delay	= APP_TIMER_MIN_TIMEOUT_TICKS;			// ASAP
+    cp_init.next_conn_params_update_delay	= APP_TIMER_MIN_TIMEOUT_TICKS;			// ASAP
+    cp_init.max_conn_params_update_count	= 3;									// negotiation attempts
+    cp_init.start_on_notify_cccd_handle		= BLE_GATT_HANDLE_INVALID;
+    cp_init.disconnect_on_fail				= true;
+    cp_init.evt_handler						= NULL;
+    cp_init.error_handler					= conn_params_error_handler;
+
+    APP_ERROR_CHECK(ble_conn_params_init(&cp_init));
+}
+
+/**@brief Function for handling a Connection Parameters error.
+ *
+ * @param[in] nrf_error  Error code containing information about what went wrong.
+ */
+static void conn_params_error_handler(uint32_t nrf_error)
+{
+    APP_ERROR_HANDLER(nrf_error);
+}
 
 
 /**@brief Function for error handling, which is called when an error has occurred.
@@ -476,7 +577,6 @@ static void timers_init(void)
 static void gap_params_init(void)
 {
     uint32_t                err_code;
-    ble_gap_conn_params_t   gap_conn_params;
     ble_gap_conn_sec_mode_t sec_mode;
 
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
@@ -487,16 +587,6 @@ static void gap_params_init(void)
     APP_ERROR_CHECK(err_code);
 
     err_code = sd_ble_gap_appearance_set(BLE_APPEARANCE_UNKNOWN);
-    APP_ERROR_CHECK(err_code);
-
-    memset(&gap_conn_params, 0, sizeof(gap_conn_params));
-
-    gap_conn_params.min_conn_interval = MIN_CONN_INTERVAL;
-    gap_conn_params.max_conn_interval = MAX_CONN_INTERVAL;
-    gap_conn_params.slave_latency     = SLAVE_LATENCY;
-    gap_conn_params.conn_sup_timeout  = CONN_SUP_TIMEOUT;
-
-    err_code = sd_ble_gap_ppcp_set(&gap_conn_params);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -543,61 +633,6 @@ static void application_timers_start(void)
 }
 
 
-/**@brief Function for handling the Connection Parameters Module.
- *
- * @details This function will be called for all events in the Connection Parameters Module which
- *          are passed to the application.
- *          @note All this function does is to disconnect. This could have been done by simply
- *                setting the disconnect_on_fail config parameter, but instead we use the event
- *                handler mechanism to demonstrate its use.
- *
- * @param[in] p_evt  Event received from the Connection Parameters Module.
- */
-static void on_conn_params_evt(ble_conn_params_evt_t * p_evt)
-{
-    uint32_t err_code;
-
-    if (p_evt->evt_type == BLE_CONN_PARAMS_EVT_FAILED)
-    {
-        err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_CONN_INTERVAL_UNACCEPTABLE);
-        APP_ERROR_CHECK(err_code);
-    }
-}
-
-
-/**@brief Function for handling a Connection Parameters error.
- *
- * @param[in] nrf_error  Error code containing information about what went wrong.
- */
-static void conn_params_error_handler(uint32_t nrf_error)
-{
-    APP_ERROR_HANDLER(nrf_error);
-}
-
-
-/**@brief Function for initializing the Connection Parameters module.
- */
-static void conn_params_init(void)
-{
-    uint32_t               err_code;
-    ble_conn_params_init_t cp_init;
-
-    memset(&cp_init, 0, sizeof(cp_init));
-
-    cp_init.p_conn_params                  = NULL;
-    cp_init.first_conn_params_update_delay = FIRST_CONN_PARAMS_UPDATE_DELAY;
-    cp_init.next_conn_params_update_delay  = NEXT_CONN_PARAMS_UPDATE_DELAY;
-    cp_init.max_conn_params_update_count   = MAX_CONN_PARAMS_UPDATE_COUNT;
-    cp_init.start_on_notify_cccd_handle    = BLE_GATT_HANDLE_INVALID;
-    cp_init.disconnect_on_fail             = false;
-    cp_init.evt_handler                    = on_conn_params_evt;
-    cp_init.error_handler                  = conn_params_error_handler;
-
-    err_code = ble_conn_params_init(&cp_init);
-    APP_ERROR_CHECK(err_code);
-}
-
-
 /**@brief Function for putting the chip into sleep mode.
  *
  * @note This function will not return.
@@ -617,34 +652,6 @@ static void sleep_mode_enter(void)
     // Go to system-off mode (this function will not return; wakeup will cause a reset).
     err_code = sd_power_system_off();
     APP_ERROR_CHECK(err_code);
-}
-
-
-/**@brief Function for handling advertising events.
- *
- * @details This function will be called for advertising events which are passed to the application.
- *
- * @param[in] ble_adv_evt  Advertising event.
- */
-static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
-{
-    uint32_t err_code;
-
-    switch (ble_adv_evt)
-    {
-        case BLE_ADV_EVT_FAST:
-            NRF_LOG_INFO("Fast advertising\r\n");
-            err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
-            APP_ERROR_CHECK(err_code);
-            break;
-
-        case BLE_ADV_EVT_IDLE:
-            sleep_mode_enter();
-            break;
-
-        default:
-            break;
-    }
 }
 
 
@@ -918,39 +925,6 @@ static void peer_manager_init(bool erase_bonds)
 }
 
 
-/**@brief Function for initializing the Advertising functionality.
- *
- * @details Encodes the required advertising data and passes it to the stack.
- *          Also builds a structure to be passed to the stack when starting advertising.
- */
-static void advertising_init(void)
-{
-    uint32_t               err_code;
-    ble_advdata_t          advdata;
-    ble_advdata_t          srdata;
-    ble_adv_modes_config_t options;
-
-    // Build and set advertising data
-    memset(&advdata, 0, sizeof(advdata));
-    advdata.name_type               = BLE_ADVDATA_FULL_NAME;
-    advdata.include_appearance      = true;
-    advdata.flags                   = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
-    advdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
-    advdata.uuids_complete.p_uuids  = m_adv_uuids;
-
-    memset(&srdata, 0, sizeof(srdata));
-    srdata.uuids_complete.uuid_cnt  = 0;
-
-    memset(&options, 0, sizeof(options));
-    options.ble_adv_fast_enabled  = true;
-    options.ble_adv_fast_interval = APP_ADV_INTERVAL;
-    options.ble_adv_fast_timeout  = APP_ADV_TIMEOUT_IN_SECONDS;
-
-    err_code = ble_advertising_init(&advdata, &srdata, &options, on_adv_evt, NULL);
-    APP_ERROR_CHECK(err_code);
-}
-
-
 /**@brief Function for initializing buttons and leds.
  *
  * @param[out] p_erase_bonds  Will be true if the clear bonding button was pressed to wake the application up.
@@ -991,16 +965,6 @@ static void power_manage(void)
 }
 
 
-/**@brief Function for starting advertising.
- */
-static void advertising_start(void)
-{
-    uint32_t err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
-
-    APP_ERROR_CHECK(err_code);
-}
-
-
 /**@brief Function for application main entry.
  */
 int main(void)
@@ -1033,8 +997,7 @@ int main(void)
     NRF_LOG_INFO("Microsal Sensor Start!\r\n");
     application_timers_start();
 
-    err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
-    APP_ERROR_CHECK(err_code);
+    advertising_start();
 
     // Enter main loop.
     for (;;)
