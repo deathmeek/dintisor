@@ -73,10 +73,6 @@
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
 
-#define FIRST_CONN_PARAMS_UPDATE_DELAY  APP_TIMER_TICKS(5000, APP_TIMER_PRESCALER)  /**< Time from initiating event (connect or start of indication) to first time sd_ble_gap_conn_param_update is called (5 seconds). */
-#define NEXT_CONN_PARAMS_UPDATE_DELAY   APP_TIMER_TICKS(30000, APP_TIMER_PRESCALER) /**< Time between each call to sd_ble_gap_conn_param_update after the first call (30 seconds). */
-#define MAX_CONN_PARAMS_UPDATE_COUNT    3                                           /**< Number of attempts before giving up the connection parameter negotiation. */
-
 #define SEC_PARAM_BOND                  1                                           /**< Perform bonding. */
 #define SEC_PARAM_MITM                  0                                           /**< Man In The Middle protection not required. */
 #define SEC_PARAM_LESC                  0                                           /**< LE Secure Connections not enabled. */
@@ -548,14 +544,14 @@ static void conn_params_init(void)
 
     memset(&cp_init, 0, sizeof(cp_init));
 
-    cp_init.p_conn_params                  = &gap_conn_params;
-    cp_init.first_conn_params_update_delay = FIRST_CONN_PARAMS_UPDATE_DELAY;
-    cp_init.next_conn_params_update_delay  = NEXT_CONN_PARAMS_UPDATE_DELAY;
-    cp_init.max_conn_params_update_count   = MAX_CONN_PARAMS_UPDATE_COUNT;
-    cp_init.start_on_notify_cccd_handle    = BLE_GATT_HANDLE_INVALID;
-    cp_init.disconnect_on_fail             = true;
-    cp_init.evt_handler                    = NULL;
-    cp_init.error_handler                  = conn_params_error_handler;
+    cp_init.p_conn_params					= &gap_conn_params;
+    cp_init.first_conn_params_update_delay	= APP_TIMER_MIN_TIMEOUT_TICKS;			// ASAP
+    cp_init.next_conn_params_update_delay	= APP_TIMER_MIN_TIMEOUT_TICKS;			// ASAP
+    cp_init.max_conn_params_update_count	= 3;									// negotiation attempts
+    cp_init.start_on_notify_cccd_handle		= BLE_GATT_HANDLE_INVALID;
+    cp_init.disconnect_on_fail				= true;
+    cp_init.evt_handler						= NULL;
+    cp_init.error_handler					= conn_params_error_handler;
 
     err_code = ble_conn_params_init(&cp_init);
     APP_ERROR_CHECK(err_code);
