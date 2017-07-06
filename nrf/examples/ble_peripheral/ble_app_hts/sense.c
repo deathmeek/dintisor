@@ -5,6 +5,9 @@
  *      Author: dan
  */
 
+#define NRF_LOG_MODULE_NAME "SENS"
+
+
 #include <app_error.h>
 #include <ble.h>
 #include <ble_gap.h>
@@ -17,14 +20,13 @@
 #ifdef NRF52
 #include <nrf_drv_saadc.h>
 #endif /* NRF52 */
+#include <nrf_gpio.h>
+#include <nrf_log.h>
 #include <nrf_soc.h>
 
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-
-
-extern float battery_voltage;
 
 
 static const ble_uuid128_t		full_uuid = {{0x85, 0xf5, 0x2b, 0x3f, 0x03, 0x1b, 0x7d, 0x82, 0xab, 0x49, 0x9e, 0x7f, 0x2d, 0x92, 0x1e, 0x13}};
@@ -188,7 +190,26 @@ uint8_t sense_measurement_init(uint8_t adc_channel)
 	APP_ERROR_CHECK(err_code);
 #endif /* NRF52 */
 
+	// setup sensors
+#ifdef NRF52
+	// humidity: 0 - disconnected, 1 - powered
+	NRF_GPIO->OUTCLR = (1 << 6);
+	NRF_GPIO->PIN_CNF[6] = NRF_GPIO_PIN_DIR_OUTPUT | NRF_GPIO_PIN_INPUT_DISCONNECT | NRF_GPIO_PIN_NOPULL | NRF_GPIO_PIN_D0S1;
+
+	// pH: 0 - disconnected, 1 - powered
+	NRF_GPIO->OUTCLR = (1 << 28);
+	NRF_GPIO->PIN_CNF[28] = NRF_GPIO_PIN_DIR_OUTPUT | NRF_GPIO_PIN_INPUT_DISCONNECT | NRF_GPIO_PIN_NOPULL | NRF_GPIO_PIN_D0S1;
+#endif /* NRF52 */
+
 	return adc_channel;
+}
+
+void sense_measurement_prep()
+{
+	// activate sensors
+#ifdef NRF52
+	NRF_GPIO->OUTSET = (1 << 6) | (1 << 28);
+#endif /* NRF52 */
 }
 
 /**
@@ -196,18 +217,28 @@ uint8_t sense_measurement_init(uint8_t adc_channel)
  */
 uint8_t sense_measurement_sample(int16_t* sample)
 {
+	// deactivate sensors
+#ifdef NRF52
+	NRF_GPIO->OUTCLR = (1 << 6) | (1 << 28);
+#endif /* NRF52 */
+
 #ifdef NRF51
-	humidity_value	= *sample++ * (1.2f / 1024 / (1.0f/3) / (100.0f / (100.0f + 22.0f)));	// REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=22K, GND_RES=100K
-	pH_value		= *sample++ * (1.2f / 1024 / (1.0f/3) / (100.0f / (100.0f + 22.0f)));	// REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=22K, GND_RES=100K
+	float humidity_voltage	= *sample++ * (1.2f / 1024 / (1.0f/3) / (100.0f / (100.0f + 22.0f)));	// REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=22K, GND_RES=100K
+	humidity_value			= humidity_voltage;
+
+	float pH_voltage		= *sample++ * (1.2f / 1024 / (1.0f/3) / (100.0f / (100.0f + 22.0f)));	// REF=1.2V, RES=10bit, GAIN=1/3, VDD_RES=22K, GND_RES=100K
+	pH_value				= pH_voltage;
 #endif /* NRF51 */
 
 #ifdef NRF52
-	float humidity_voltage	= *sample++ * (0.6f / 1024 / (1.0f/6));	// REF=0.6V, RES=10bit, GAIN=1/6
-	humidity_value			= humidity_voltage * 33.0f / (battery_voltage - humidity_voltage);	// VDD_RES=33K
+	float humidity_voltage	= *sample++ * (0.6f / 1024 / (1.0f/6));									// REF=0.6V, RES=10bit, GAIN=1/6
+	humidity_value			= humidity_voltage;
 
-	float pH_voltage		= *sample++ * (0.6f / 1024 / (1.0f/6));	// REF=0.6V, RES=10bit, GAIN=1/6
-	pH_value				= pH_voltage * 33.0f / (battery_voltage - pH_voltage);				// VDD_RES=33K
+	float pH_voltage		= *sample++ * (0.6f / 1024 / (1.0f/6));									// REF=0.6V, RES=10bit, GAIN=1/6
+	pH_value				= pH_voltage;
 #endif /* NRF52 */
+
+	NRF_LOG_DEBUG("hum %dmV, pH %dmV\n", (int)(humidity_voltage*1000), (int)(pH_voltage*1000));
 
 	if(conn_handle != BLE_CONN_HANDLE_INVALID)
 	{

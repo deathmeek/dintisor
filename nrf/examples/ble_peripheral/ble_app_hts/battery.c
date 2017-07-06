@@ -95,6 +95,11 @@ uint8_t battery_measurement_init(uint8_t adc_channel)
 	return adc_channel;
 }
 
+void battery_measurement_prep()
+{
+	// no action required
+}
+
 /**
  * @brief Get VDD voltage and update battery level.
  */
