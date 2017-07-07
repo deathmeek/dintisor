@@ -11,6 +11,7 @@ import android.util.Log;
 
 import java.io.CharArrayWriter;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -170,12 +171,12 @@ public class Tooth {
             }
             int value = -1;
             if (characteristic == phCharac) {
-                float v = ByteBuffer.wrap(characteristic.getValue()).getFloat();
+                float v = ByteBuffer.wrap(characteristic.getValue()).order(ByteOrder.LITTLE_ENDIAN).getFloat();
                 value = (int)(v * 1000);
                 Log.i("pH", "" + v);
                 dataFrame.update(value, DataFrame.DataType.PH);
             } else if (characteristic == humCharac) {
-                float v = ByteBuffer.wrap(characteristic.getValue()).getFloat();
+                float v = ByteBuffer.wrap(characteristic.getValue()).order(ByteOrder.LITTLE_ENDIAN).getFloat();
                 value = (int)(v * 1000);
                 Log.i("hum", "" + v);
                 dataFrame.update(value, DataFrame.DataType.Humidity);
