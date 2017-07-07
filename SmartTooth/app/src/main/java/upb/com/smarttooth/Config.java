@@ -17,12 +17,13 @@ public class Config {
         TOOTH_MACs.add("C3:C0:9F:D9:6E:74");
         TOOTH_MACs.add("D1:43:87:EE:3D:06");
         TOOTH_MACs.add("DB:AE:F9:E7:EB:6A");
+        TOOTH_MACs.add("F9:EA:50:8A:36:97");
     }
-    public static final int READ_INTERVAL = 3 * 1000;
-    public static final String TOOTH_UUID_IN_SERVICE = "131e922d-7f9e-49ab-827d-1b033f2bf585";
-    public static final String TOOTH_UUID_IN_CHARAC_PH = "131e0000-7f9e-49ab-827d-1b033f2bf585";
+    public static final int READ_INTERVAL = 5 * 1000;
+    public static final String TOOTH_UUID_IN_SERVICE    = "131e922d-7f9e-49ab-827d-1b033f2bf585";
+    public static final String TOOTH_UUID_IN_CHARAC_PH  = "131e0003-7f9e-49ab-827d-1b033f2bf585";
     //Todo
-    public static final String TOOTH_UUID_IN_CHARAC_HUM = "131e0000-7f9e-49ab-827d-1b033f2bf585";
+    public static final String TOOTH_UUID_IN_CHARAC_HUM = "131e0002-7f9e-49ab-827d-1b033f2bf585";
     public static final String TOOTH_UUID_OUT_SERVICE = "016fbc81-2eaf-418c-b579-e6c313374509";
 
     public static final String TOOTH_UUID_OUT_ST = "016f0000-2eaf-418c-b579-e6c313374509";
