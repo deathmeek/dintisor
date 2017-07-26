@@ -42,7 +42,8 @@
         </activity>
         <activity
             android:name="upb.com.smarttooth.UI.PatientActivity"
-            android:label="@string/title_activity_new_patient_view"></activity>
+            android:label="@string/title_activity_new_patient_view"
+            android:screenOrientation="portrait"></activity>
     </application>
 
 </manifest>

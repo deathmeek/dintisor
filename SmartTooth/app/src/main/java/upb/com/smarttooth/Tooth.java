@@ -46,7 +46,7 @@ public class Tooth {
 
         public String toString()
         {
-            return getName(c.getUuid().toString());
+            return c != null ? getName(c.getUuid().toString()) : "null";
         }
     }
 
@@ -77,10 +77,10 @@ public class Tooth {
             Log.d("BluetoothLocate", "device found - " + device.getAddress() + ", "
                     + device.getName() + ", " + Arrays.toString(device.getUuids()));
 
-//            if (!Config.TOOTH_MACs.contains(device.getAddress())) {
-//                Log.d("BluetoothLocate", "device not in list - " + Config.TOOTH_MACs.toString());
-//                return;
-//            }
+            if (!Config.TOOTH_MACs.contains(device.getAddress())) {
+                Log.d("BluetoothLocate", "device not in list - " + Config.TOOTH_MACs.toString());
+                return;
+            }
 
             TransientStorage.addDevice(device);
 
@@ -147,12 +147,15 @@ public class Tooth {
             //watchdog.reset();
             Log.i("println", "Characteristic " + getName(characteristic.getUuid().toString()) + "was written ");
             CharacWrapper dr = null;
-            for (CharacWrapper cw : map) {
-                if (cw.c == characteristic && cw.write) {
-                    dr = cw;
+            synchronized (map) {
+                for (CharacWrapper cw : map) {
+                    if (cw.c == characteristic && cw.write) {
+                        dr = cw;
+                        break;
+                    }
                 }
+                map.remove(dr);
             }
-            map.remove(dr);
             scheduleNext();
         }
 
@@ -165,6 +168,7 @@ public class Tooth {
                 for (CharacWrapper cw : map) {
                     if (cw.c == characteristic && !cw.write) {
                         dr = cw;
+                        break;
                     }
                 }
                 map.remove(dr);
@@ -177,9 +181,14 @@ public class Tooth {
                 dataFrame.update(value, DataFrame.DataType.PH);
             } else if (characteristic == humCharac) {
                 float v = ByteBuffer.wrap(characteristic.getValue()).order(ByteOrder.LITTLE_ENDIAN).getFloat();
-                value = (int)(v * 1000);
+                value = (int) (v * 1000);
                 Log.i("hum", "" + v);
                 dataFrame.update(value, DataFrame.DataType.Humidity);
+            } else if (characteristic == T1Charac || characteristic == T2Charac ||
+                    characteristic == T3Charac || characteristic == T4Charac ||
+                    characteristic == TACharac || characteristic == TPCharac ||
+                    characteristic == TTCharac) {
+                updateUI(characteristic, characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0));
             } else {
 //                if (characteristic == STCharac) {
 //                    value = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
@@ -285,36 +294,47 @@ public class Tooth {
                     }
                 }
             }
-            readAllCharac();
         }
-
-        private void readAllCharac() {
-            enqueueRead(R.id.button_start);
-            enqueueRead(R.id.editText_Voltage);
-            enqueueRead(R.id.numberPickerT1);
-            enqueueRead(R.id.numberPickerT2);
-            enqueueRead(R.id.numberPickerT3);
-            enqueueRead(R.id.numberPickerT4);
-            enqueueRead(R.id.numberPickerTA);
-            enqueueRead(R.id.numberPickerTP);
-            enqueueRead(R.id.numberPickerTT);
-        }
-
     };
+
+    public void readAllCharac() {
+        enqueueRead(R.id.button_start);
+        enqueueRead(R.id.editText_Voltage);
+        enqueueRead(R.id.numberPickerT1);
+        enqueueRead(R.id.numberPickerT2);
+        enqueueRead(R.id.numberPickerT3);
+        enqueueRead(R.id.numberPickerT4);
+        enqueueRead(R.id.numberPickerTA);
+        enqueueRead(R.id.numberPickerTP);
+        enqueueRead(R.id.numberPickerTT);
+    }
 
     private void updateUI(BluetoothGattCharacteristic characteristic, int value) {
         int id = remap(characteristic);
-        ToothSettings.getInstance().update(id, value);
+        ToothSettings ts = ToothSettings.getInstance();
+        if (ts != null)
+            ts.update(id, value);
     }
 
     private void scheduleNext() {
-
         synchronized (map) {
+            Log.i("schedule", map.toString());
+            // writes have priority
+            for(CharacWrapper c : map)
+            {
+                if(c.write)
+                {
+                    bluetoothGatt.writeCharacteristic(c.c);
+                    return;
+                }
+            }
+
+            // do one read
             Iterator<CharacWrapper> it = map.iterator();
             if (it.hasNext()) {
                 CharacWrapper c = it.next();
                 if (c.write) {
-                    bluetoothGatt.writeCharacteristic(c.c);
+                    Log.w("schedule", "write characteristic still available");
                 } else {
                     bluetoothGatt.readCharacteristic(c.c);
                 }
@@ -361,7 +381,7 @@ public class Tooth {
     }
 
     private int remapFormat(int id) {
-        if (id != R.id.button_start) {
+        if (id != R.id.button_start && id != R.id.button_stop) {
             return BluetoothGattCharacteristic.FORMAT_UINT32;
         }
         return BluetoothGattCharacteristic.FORMAT_UINT8;
@@ -369,6 +389,12 @@ public class Tooth {
 
     public void enqueueWrite(int id, int val) {
         BluetoothGattCharacteristic charac = remap(id);
+
+        if(charac == null) {
+            Log.w("enque write", "characteristic not found (yet)");
+            return;
+        }
+
         Log.e("ceva", "enqueueWrite " + val);
         synchronized (map) {
             charac.setValue(val, remapFormat(id), 0);
@@ -385,12 +411,17 @@ public class Tooth {
     }
 
 
-    private void enqueueRead(int id) {
+    public void enqueueRead(int id) {
         BluetoothGattCharacteristic charac = remap(id);
         enqueueRead(charac);
     }
 
     private void enqueueRead(BluetoothGattCharacteristic charac) {
+        if(charac == null) {
+            Log.w("enque write", "characteristic not found (yet)");
+            return;
+        }
+
         synchronized (map) {
             CharacWrapper cw = new CharacWrapper();
             cw.c = charac;
@@ -405,6 +436,9 @@ public class Tooth {
     private BluetoothGattCharacteristic remap(int id) {
         switch (id) {
             case R.id.button_start: {
+                return STCharac;
+            }
+            case R.id.button_stop: {
                 return STCharac;
             }
             case R.id.editText_Voltage: {

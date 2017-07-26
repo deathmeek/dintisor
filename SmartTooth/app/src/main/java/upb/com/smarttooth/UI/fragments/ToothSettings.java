@@ -1,10 +1,14 @@
 package upb.com.smarttooth.UI.fragments;
 
 import android.os.Bundle;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.textservice.TextInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -47,77 +51,67 @@ public class ToothSettings implements Renderer {
         return R.menu.tooth_settings;
     }
 
-    private void updateT14(EditText e){
-        int val = 0;
-        try { val = Integer.parseInt(e.getText().toString()); } catch (Exception ex) {}
-        val = val == 0 ? 0 : (val < Config.MIN_PULSE_TIME ? Config.MIN_PULSE_TIME : Config.MIN_PULSE_TIME * (val / Config.MIN_PULSE_TIME));
-        if(val == 0)
+    private void updateT14(EditText e)
+    {
+        int val;
+        try {
+            val = Integer.parseInt(e.getText().toString());
+//            val = val == 0 ? 0 : (val < Config.MIN_PULSE_TIME ? Config.MIN_PULSE_TIME : Config.MIN_PULSE_TIME * (val / Config.MIN_PULSE_TIME));
+            e.setText(Integer.toString(val));
+        } catch (Exception ex) {
             e.setText("");
-        else
-            e.setText(val + "");
+            return;
+        }
         Tooth.getInstance().enqueueWrite(remapView(e), val);
-        updateTA();
+        Tooth.getInstance().enqueueRead(remapView(e));
     }
 
     private int remapView(View e) {
         return e.getId();
     }
 
-    private void updateTA(){
-        int val = 0;
-        try { val = Integer.parseInt(Ta.getText().toString()); } catch (Exception ex) {}
-        int sum;
-        int v1 = 0, v2 = 0, v3 = 0, v4 = 0;
-        try { v1 = Integer.parseInt(T1.getText().toString()); } catch (Exception ex) {}
-        try { v2 = Integer.parseInt(T2.getText().toString()); } catch (Exception ex) {}
-        try { v3 = Integer.parseInt(T3.getText().toString()); } catch (Exception ex) {}
-        try { v4 = Integer.parseInt(T4.getText().toString()); } catch (Exception ex) {}
-        sum = v1 + v2 + v3 + v4;
-
-        if(sum == 0) {
-            return;
-        }
-        val = val < sum ? sum : sum * (val / sum);
-        if(val == 0)
+    private void updateTA()
+    {
+        int val;
+        try {
+            val = Integer.parseInt(Ta.getText().toString());
+//            val = val == 0 ? 0 : (val < Config.MIN_PULSE_TIME ? Config.MIN_PULSE_TIME : Config.MIN_PULSE_TIME * (val / Config.MIN_PULSE_TIME));
+            Ta.setText(Integer.toString(val));
+        } catch (Exception ex) {
             Ta.setText("");
-        else
-            Ta.setText(val + "");
-        // 1000 ms / sum(ms)
-        float fVal = 1000.0f/val;
-        f.setText(fVal + "");
-        Tooth.getInstance().enqueueWrite(remapView(Ta), val);
-        updateTT();
-    }
-    private void updateTP(){
-        int val=0;
-        try { val = Integer.parseInt(Tp.getText().toString()); } catch (Exception ex) {}
-        val = val == 0 ? 0 : (val < Config.MIN_PAUSE_TIME ? Config.MIN_PAUSE_TIME : Config.MIN_PAUSE_TIME * (val / Config.MIN_PAUSE_TIME));
-        if(val == 0)
-            Tp.setText("");
-        else
-            Tp.setText(val + "");
-        Tooth.getInstance().enqueueWrite(remapView(Tp), val);
-        updateTT();
-    }
-    private void updateTT() {
-        int sum;
-        int va = 0, vp = 0;
-        int val=0;
-        try { val = Integer.parseInt(Tt.getText().toString()); } catch (Exception ex) {}
-        try { va = Integer.parseInt(Ta.getText().toString()); } catch (Exception ex) {}
-        try { vp = Integer.parseInt(Tp.getText().toString()); } catch (Exception ex) {}
-
-        sum = va + vp;
-        if(sum == 0) {
             return;
         }
-        val = val < sum ? sum : sum * (val / sum);
-        if(val == 0) {
+        Tooth.getInstance().enqueueWrite(remapView(Ta), val);
+        Tooth.getInstance().enqueueRead(remapView(Ta));
+    }
+
+    private void updateTP()
+    {
+        int val;
+        try {
+            val = Integer.parseInt(Tp.getText().toString());
+//            val = val == 0 ? 0 : (val < Config.MIN_PULSE_TIME ? Config.MIN_PULSE_TIME : Config.MIN_PULSE_TIME * (val / Config.MIN_PULSE_TIME));
+            Tp.setText(Integer.toString(val));
+        } catch (Exception ex) {
+            Tp.setText("");
+            return;
+        }
+        Tooth.getInstance().enqueueWrite(remapView(Tp), val);
+        Tooth.getInstance().enqueueRead(remapView(Tp));
+    }
+
+    private void updateTT() {
+        int val;
+        try {
+            val = Integer.parseInt(Tt.getText().toString());
+//            val = val == 0 ? 0 : (val < Config.MIN_STIM_TIME ? Config.MIN_STIM_TIME : val);
+            Tt.setText(Integer.toString(val));
+        } catch (Exception ex) {
             Tt.setText("");
-        } else {
-            Tt.setText(val + "");
+            return;
         }
         Tooth.getInstance().enqueueWrite(remapView(Tt), val);
+        Tooth.getInstance().enqueueRead(remapView(Tt));
     }
 
     @Override
@@ -130,8 +124,16 @@ public class ToothSettings implements Renderer {
         b.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                start[0] = !start[0];
-                Tooth.getInstance().enqueueWrite(remapView(b), start[0] ? 1 : 0);
+                start[0] = true;
+                Tooth.getInstance().enqueueWrite(remapView(b), 1);
+            }
+        });
+        final Button bstop = (Button)rootView.findViewById(R.id.button_stop);
+        bstop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                start[0] = false;
+                Tooth.getInstance().enqueueWrite(remapView(bstop), 0);
             }
         });
         Ta = (EditText) rootView.findViewById(R.id.numberPickerTA);
@@ -143,44 +145,49 @@ public class ToothSettings implements Renderer {
         T4 = (EditText) rootView.findViewById(R.id.numberPickerT4);
         f = (TextView) rootView.findViewById(R.id.textView_f);
         status = ( TextView) rootView.findViewById(R.id.textView_status);
-        View.OnFocusChangeListener l14 = new  View.OnFocusChangeListener(){
+        TextView.OnEditorActionListener l14 = new TextView.OnEditorActionListener() {
             @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if(hasFocus)
-                    return;
-                EditText e = (EditText) v;
-                updateT14(e);
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if(actionId == EditorInfo.IME_ACTION_DONE) {
+                    EditText e = (EditText) v;
+                    updateT14(e);
+                }
+                return false;
             }
         };
-        T1.setOnFocusChangeListener(l14);
-        T2.setOnFocusChangeListener(l14);
-        T3.setOnFocusChangeListener(l14);
-        T4.setOnFocusChangeListener(l14);
-        Ta.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+        T1.setOnEditorActionListener(l14);
+        T2.setOnEditorActionListener(l14);
+        T3.setOnEditorActionListener(l14);
+        T4.setOnEditorActionListener(l14);
+        Ta.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (hasFocus)
-                    return;
-                updateTA();
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if(actionId == EditorInfo.IME_ACTION_DONE) {
+                    updateTA();
+                }
+                return false;
             }
         });
-        Tp.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+        Tp.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (hasFocus)
-                    return;
-                updateTP();
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if(actionId == EditorInfo.IME_ACTION_DONE) {
+                    updateTP();
+                }
+                return false;
             }
         });
-
-        Tt.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+        Tt.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (hasFocus)
-                    return;
-                updateTT();
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if(actionId == EditorInfo.IME_ACTION_DONE) {
+                    updateTT();
+                }
+                return false;
             }
         });
+        if(Tt.getText().length() == 0)
+            Tooth.getInstance().readAllCharac();
         return rootView;
     }
 
@@ -204,10 +211,9 @@ public class ToothSettings implements Renderer {
                     //TODO set button
                 } else {
                     EditText e = (EditText) rootView.findViewById(id);
-                    e.setText(value + "");
+                    e.setText(Integer.toString(value));
                 }
             }
         });
-
     }
 }
