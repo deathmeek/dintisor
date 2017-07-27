@@ -27,6 +27,7 @@ public class ToothSettings implements Renderer {
     EditText T3;
     EditText T4;
     TextView f;
+    TextView d;
     public static TextView status;
     private View rootView;
     private static ToothSettings instance;
@@ -56,8 +57,7 @@ public class ToothSettings implements Renderer {
         int val;
         try {
             val = Integer.parseInt(e.getText().toString());
-//            val = val == 0 ? 0 : (val < Config.MIN_PULSE_TIME ? Config.MIN_PULSE_TIME : Config.MIN_PULSE_TIME * (val / Config.MIN_PULSE_TIME));
-            e.setText(Integer.toString(val));
+            update(e.getId(), val);
         } catch (Exception ex) {
             e.setText("");
             return;
@@ -75,8 +75,7 @@ public class ToothSettings implements Renderer {
         int val;
         try {
             val = Integer.parseInt(Ta.getText().toString());
-//            val = val == 0 ? 0 : (val < Config.MIN_PULSE_TIME ? Config.MIN_PULSE_TIME : Config.MIN_PULSE_TIME * (val / Config.MIN_PULSE_TIME));
-            Ta.setText(Integer.toString(val));
+            update(Ta.getId(), val);
         } catch (Exception ex) {
             Ta.setText("");
             return;
@@ -90,8 +89,7 @@ public class ToothSettings implements Renderer {
         int val;
         try {
             val = Integer.parseInt(Tp.getText().toString());
-//            val = val == 0 ? 0 : (val < Config.MIN_PULSE_TIME ? Config.MIN_PULSE_TIME : Config.MIN_PULSE_TIME * (val / Config.MIN_PULSE_TIME));
-            Tp.setText(Integer.toString(val));
+            update(Tp.getId(), val);
         } catch (Exception ex) {
             Tp.setText("");
             return;
@@ -104,8 +102,7 @@ public class ToothSettings implements Renderer {
         int val;
         try {
             val = Integer.parseInt(Tt.getText().toString());
-//            val = val == 0 ? 0 : (val < Config.MIN_STIM_TIME ? Config.MIN_STIM_TIME : val);
-            Tt.setText(Integer.toString(val));
+            update(Tt.getId(), val);
         } catch (Exception ex) {
             Tt.setText("");
             return;
@@ -144,6 +141,7 @@ public class ToothSettings implements Renderer {
         T3 = (EditText) rootView.findViewById(R.id.numberPickerT3);
         T4 = (EditText) rootView.findViewById(R.id.numberPickerT4);
         f = (TextView) rootView.findViewById(R.id.textView_f);
+        d = (TextView) rootView.findViewById(R.id.textView_d);
         status = ( TextView) rootView.findViewById(R.id.textView_status);
         TextView.OnEditorActionListener l14 = new TextView.OnEditorActionListener() {
             @Override
@@ -210,6 +208,28 @@ public class ToothSettings implements Renderer {
                 } else {
                     EditText e = (EditText) rootView.findViewById(id);
                     e.setText(Integer.toString(value));
+
+                    if(id == R.id.numberPickerT1 || id == R.id.numberPickerT2)
+                    {
+                        try {
+                            int valT1 = Integer.parseInt(T1.getText().toString());
+                            int valT2 = Integer.parseInt(T2.getText().toString());
+                            float valf = 1000000.0f / (valT1 + valT2);
+                            float vald = 100.0f * valT1 / (valT1 + valT2);
+                            String suff = "";
+                            if(valf >= 1000)
+                            {
+                                valf /= 1000;
+                                suff = "K";
+                            } else if(valf >= 1000000)
+                            {
+                                valf /= 1000000;
+                                suff = "M";
+                            }
+                            f.setText(String.format("%.2f %sHz", valf, suff));
+                            d.setText(String.format("%.2f %%", vald));
+                        } catch (NumberFormatException ex) {}
+                    }
                 }
             }
         });

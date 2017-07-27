@@ -24,52 +24,58 @@
                 android:orientation="vertical"
                 android:background="@drawable/border"
                 android:padding="10dp">
+
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Tt"
-                        android:layout_gravity="center"/>
+                        android:layout_gravity="center"
+                        android:text="Tt" />
 
                     <EditText
                         android:id="@+id/numberPickerTT"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:ems="4"
                         android:imeOptions="actionDone"
                         android:inputType="number" />
                 </LinearLayout>
+
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Tp"
-                        android:layout_gravity="center"/>
+                        android:layout_gravity="center"
+                        android:text="Tp" />
 
                     <EditText
                         android:id="@+id/numberPickerTP"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:ems="4"
                         android:imeOptions="actionDone"
                         android:inputType="number" />
                 </LinearLayout>
+
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Ta"
-                        android:layout_gravity="center"/>
+                        android:layout_gravity="center"
+                        android:text="Ta" />
 
                     <EditText
                         android:id="@+id/numberPickerTA"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:ems="4"
                         android:imeOptions="actionDone"
@@ -83,70 +89,78 @@
                 android:orientation="vertical"
                 android:background="@drawable/border"
                 android:padding="10dp">
+
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="T1"
-                        android:layout_gravity="center"/>
+                        android:layout_gravity="center"
+                        android:text="T1" />
 
                     <EditText
                         android:id="@+id/numberPickerT1"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:ems="4"
                         android:imeOptions="actionDone"
                         android:inputType="number" />
                 </LinearLayout>
+
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="T2"
-                        android:layout_gravity="center"/>
+                        android:layout_gravity="center"
+                        android:text="T2" />
 
                     <EditText
                         android:id="@+id/numberPickerT2"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:ems="4"
                         android:imeOptions="actionDone"
                         android:inputType="number" />
                 </LinearLayout>
+
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="T3"
-                        android:layout_gravity="center"/>
+                        android:layout_gravity="center"
+                        android:text="T3" />
 
                     <EditText
                         android:id="@+id/numberPickerT3"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:ems="4"
                         android:imeOptions="actionDone"
                         android:inputType="number" />
 
                 </LinearLayout>
+
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content">
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="T4"
-                        android:layout_gravity="center"/>
+                        android:layout_gravity="center"
+                        android:text="T4" />
 
                     <EditText
                         android:id="@+id/numberPickerT4"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:ems="4"
                         android:imeOptions="actionDone"
@@ -160,59 +174,68 @@
             android:layout_height="match_parent"
             android:background="@drawable/border"
             >
+
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_alignParentBottom="true"
                 android:orientation="vertical"
                 android:padding="10dp">
+
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content">
+
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="25dp"
                         android:layout_height="wrap_content"
                         android:text="V"
-                        android:textAppearance="?android:attr/textAppearanceLarge"/>
+                        android:textAppearance="?android:attr/textAppearanceLarge" />
 
                     <EditText
-                        android:layout_width="wrap_content"
+                        android:id="@+id/editText_Voltage"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="number"
                         android:ems="4"
-                        android:id="@+id/editText_Voltage" />
+                        android:inputType="number" />
                 </LinearLayout>
+
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content">
+
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="25dp"
                         android:layout_height="wrap_content"
                         android:text="d"
-                        android:textAppearance="?android:attr/textAppearanceLarge"/>
+                        android:textAppearance="?android:attr/textAppearanceLarge" />
 
-                    <EditText
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:inputType="number"
-                        android:ems="4"
-                        android:text="100"
-                        android:id="@+id/editText_d" />
-                </LinearLayout>
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content">
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:id="@+id/textView_d"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ems="4"
+                        android:inputType="number"
+                        android:textAppearance="?android:attr/textAppearanceLarge" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:layout_width="25dp"
                         android:layout_height="wrap_content"
                         android:text="f"
-                        android:textAppearance="?android:attr/textAppearanceLarge"/>
+                        android:textAppearance="?android:attr/textAppearanceLarge" />
+
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:id="@+id/textView_f"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="number"
                         android:ems="4"
-                        android:id="@+id/textView_f" />
+                        android:inputType="number"
+                        android:textAppearance="?android:attr/textAppearanceLarge" />
 
                 </LinearLayout>
             </LinearLayout>
