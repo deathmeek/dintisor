@@ -77,11 +77,6 @@ public class Tooth {
             Log.d("BluetoothLocate", "device found - " + device.getAddress() + ", "
                     + device.getName() + ", " + Arrays.toString(device.getUuids()));
 
-            if (!Config.TOOTH_MACs.contains(device.getAddress())) {
-                Log.d("BluetoothLocate", "device not in list - " + Config.TOOTH_MACs.toString());
-                return;
-            }
-
             TransientStorage.addDevice(device);
         }
     };
