@@ -130,7 +130,7 @@ public class LookupActivity extends BaseSmartToothActivity {
         for (String mac : patientsHash.keySet()) {
             String patientName = patientsHash.get(mac);
             HashMap<String, String> row = new HashMap<>(2);
-            row.put(PATIENT_NAME, patientName);
+            row.put(PATIENT_NAME, "(" + patientName + ")");
             row.put(MAC, mac);
             patients.add(row);
         }
