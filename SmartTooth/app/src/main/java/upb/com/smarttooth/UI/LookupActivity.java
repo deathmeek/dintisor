@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import adrian.upb.smarttooth.R;
+import upb.com.smarttooth.Tooth;
 import upb.com.smarttooth.storage.PersistentStorage;
 import upb.com.smarttooth.storage.TransientStorage;
 
@@ -57,13 +58,21 @@ public class LookupActivity extends BaseSmartToothActivity {
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent intent = new Intent(LookupActivity.this, PatientActivity.class);
-                intent.putExtra("MAC", patients.get(position).get(MAC));
-                intent.putExtra("PatientName", patients.get(position).get(PATIENT_NAME));
-                startActivity(intent);
+                for(BluetoothDevice dev : TransientStorage.getDevices())
+                {
+                    if(dev.getAddress().equals(patients.get(position).get(MAC)))
+                    {
+                        Tooth.getInstance().stopScan();
+                        Tooth.getInstance().connectBluetooth(dev);
+
+                        Intent intent = new Intent(LookupActivity.this, PatientActivity.class);
+                        intent.putExtra("MAC", patients.get(position).get(MAC));
+                        intent.putExtra("PatientName", patients.get(position).get(PATIENT_NAME));
+                        startActivity(intent);
+                    }
+                }
             }
         });
-
 
         devicesAdapter = new SimpleAdapter(this, devices,
                 android.R.layout.simple_list_item_2,

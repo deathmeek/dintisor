@@ -83,12 +83,6 @@ public class Tooth {
             }
 
             TransientStorage.addDevice(device);
-
-            bluetoothAdapter.stopLeScan(this);
-
-            bluetoothGatt = device.connectGatt(null, false, btleGattCallback);
-
-            Log.d("bla", bluetoothGatt.toString());
         }
     };
 
@@ -101,6 +95,11 @@ public class Tooth {
         }
         Log.i("Smartooth", "Scanning started");
         bluetoothAdapter.startLeScan(cbLocate);
+    }
+
+    public void connectBluetooth(BluetoothDevice device) {
+        bluetoothGatt = device.connectGatt(null, false, btleGattCallback);
+        Log.d("tooth", bluetoothGatt.toString());
     }
 
     private Tooth() {
@@ -204,7 +203,7 @@ public class Tooth {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             super.onConnectionStateChange(gatt, status, newState);
-            Log.e("Smartooth", "Gatt found " + gatt);
+            Log.i("Tooth", "state changed: " + newState);
             Tooth.online = newState == BluetoothProfile.STATE_CONNECTED;
             if (Tooth.online) {
                 gatt.discoverServices();
@@ -218,7 +217,6 @@ public class Tooth {
                         }
                     }
                 });
-
             } else {
                 TransientStorage.getTopMostActivity().runOnUiThread(new Runnable() {
                     @Override
@@ -294,6 +292,7 @@ public class Tooth {
                     }
                 }
             }
+            readAllCharac();
         }
     };
 

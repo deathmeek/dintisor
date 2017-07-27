@@ -186,8 +186,6 @@ public class ToothSettings implements Renderer {
                 return false;
             }
         });
-        if(Tt.getText().length() == 0)
-            Tooth.getInstance().readAllCharac();
         return rootView;
     }
 
