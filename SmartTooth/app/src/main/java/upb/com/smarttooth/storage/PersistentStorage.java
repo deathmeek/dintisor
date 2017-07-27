@@ -16,7 +16,7 @@ public class PersistentStorage {
     }
 
     public Map<String, String> getPacients() throws android.database.CursorIndexOutOfBoundsException{
-        Cursor resultSet = pacientDeviceDB.rawQuery("Select name, mac from " +
+        Cursor resultSet = pacientDeviceDB.rawQuery("Select mac, name from " +
                 PacientDeviceMappingHelper.tableName, null);
         Map<String, String> ret = new HashMap<>();
         resultSet.moveToFirst();
