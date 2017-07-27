@@ -121,6 +121,9 @@ public class Tooth {
                                 if (humCharac != null) {
                                     enqueueRead(humCharac);
                                 }
+                                if (VCharac != null) {
+                                    enqueueRead(VCharac);
+                                }
                             }
                         }
                     } catch (InterruptedException e) {
@@ -186,7 +189,7 @@ public class Tooth {
             } else if (characteristic == T1Charac || characteristic == T2Charac ||
                     characteristic == T3Charac || characteristic == T4Charac ||
                     characteristic == TACharac || characteristic == TPCharac ||
-                    characteristic == TTCharac) {
+                    characteristic == TTCharac || characteristic == VCharac) {
                 updateUI(characteristic, characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0));
             } else {
 //                if (characteristic == STCharac) {
@@ -298,7 +301,7 @@ public class Tooth {
 
     public void readAllCharac() {
         enqueueRead(R.id.button_start);
-        enqueueRead(R.id.editText_Voltage);
+        enqueueRead(R.id.textView_Voltage);
         enqueueRead(R.id.numberPickerT1);
         enqueueRead(R.id.numberPickerT2);
         enqueueRead(R.id.numberPickerT3);
@@ -440,7 +443,7 @@ public class Tooth {
             case R.id.button_stop: {
                 return STCharac;
             }
-            case R.id.editText_Voltage: {
+            case R.id.textView_Voltage: {
                 return VCharac;
             }
             case R.id.numberPickerT1: {
@@ -474,7 +477,7 @@ public class Tooth {
             return R.id.button_start;
         }
         if (c == VCharac) {
-            return R.id.editText_Voltage;
+            return R.id.textView_Voltage;
         }
         if (c == T1Charac) {
             return R.id.numberPickerT1;

@@ -144,7 +144,7 @@
                         android:layout_height="wrap_content"
                         android:ems="4"
                         android:imeOptions="actionDone"
-                        android:inputType="number" />
+                        android:inputType="none" />
 
                 </LinearLayout>
 
@@ -164,7 +164,7 @@
                         android:layout_height="wrap_content"
                         android:ems="4"
                         android:imeOptions="actionDone"
-                        android:inputType="number" />
+                        android:inputType="none" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
@@ -193,11 +193,11 @@
                         android:textAppearance="?android:attr/textAppearanceLarge" />
 
                     <EditText
-                        android:id="@+id/editText_Voltage"
+                        android:id="@+id/textView_Voltage"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:ems="4"
-                        android:inputType="number" />
+                        android:inputType="none" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -210,13 +210,12 @@
                         android:text="d"
                         android:textAppearance="?android:attr/textAppearanceLarge" />
 
-                    <TextView
+                    <EditText
                         android:id="@+id/textView_d"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:ems="4"
-                        android:inputType="number"
-                        android:textAppearance="?android:attr/textAppearanceLarge" />
+                        android:inputType="none" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -229,13 +228,12 @@
                         android:text="f"
                         android:textAppearance="?android:attr/textAppearanceLarge" />
 
-                    <TextView
+                    <EditText
                         android:id="@+id/textView_f"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:ems="4"
-                        android:inputType="number"
-                        android:textAppearance="?android:attr/textAppearanceLarge" />
+                        android:inputType="none" />
 
                 </LinearLayout>
             </LinearLayout>

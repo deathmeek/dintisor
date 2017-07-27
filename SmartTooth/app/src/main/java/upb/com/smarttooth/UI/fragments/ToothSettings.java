@@ -28,6 +28,7 @@ public class ToothSettings implements Renderer {
     EditText T4;
     TextView f;
     TextView d;
+    TextView v;
     public static TextView status;
     private View rootView;
     private static ToothSettings instance;
@@ -142,6 +143,7 @@ public class ToothSettings implements Renderer {
         T4 = (EditText) rootView.findViewById(R.id.numberPickerT4);
         f = (TextView) rootView.findViewById(R.id.textView_f);
         d = (TextView) rootView.findViewById(R.id.textView_d);
+        v = (TextView) rootView.findViewById(R.id.textView_Voltage);
         status = ( TextView) rootView.findViewById(R.id.textView_status);
         TextView.OnEditorActionListener l14 = new TextView.OnEditorActionListener() {
             @Override
@@ -205,6 +207,9 @@ public class ToothSettings implements Renderer {
             public void run() {
                 if(id == R.id.button_start){
                     //TODO set button
+                } else if(id == R.id.textView_Voltage) {
+                    TextView t = (TextView) rootView.findViewById(id);
+                    t.setText(value + " mV");
                 } else {
                     EditText e = (EditText) rootView.findViewById(id);
                     e.setText(Integer.toString(value));
