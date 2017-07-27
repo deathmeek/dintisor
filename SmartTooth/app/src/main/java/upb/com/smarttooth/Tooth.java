@@ -82,19 +82,24 @@ public class Tooth {
     };
 
     public void resetBluetooth() {
-        try {
-            bluetoothGatt.disconnect();
-            bluetoothGatt.close();
-        } catch (Exception e) {
+        disconnectBluetooth();
 
-        }
-        Log.i("Smartooth", "Scanning started");
-        bluetoothAdapter.startLeScan(cbLocate);
+        stopScan();
+        startScan();
     }
 
     public void connectBluetooth(BluetoothDevice device) {
         bluetoothGatt = device.connectGatt(null, false, btleGattCallback);
         Log.d("tooth", bluetoothGatt.toString());
+    }
+
+    public void disconnectBluetooth() {
+        if (bluetoothGatt == null)
+            return;
+
+        bluetoothGatt.disconnect();
+        bluetoothGatt.close();
+        bluetoothGatt = null;
     }
 
     private Tooth() {
