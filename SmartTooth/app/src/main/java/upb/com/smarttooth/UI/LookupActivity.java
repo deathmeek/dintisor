@@ -22,14 +22,15 @@ import upb.com.smarttooth.storage.TransientStorage;
 
 public class LookupActivity extends BaseSmartToothActivity {
     List<Map<String, String>> patients = new ArrayList<>();
-    List<String> devices = new ArrayList<>();
+    List<Map<String, String>> devices = new ArrayList<>();
 
     SimpleAdapter patientsAdapter;
-    ArrayAdapter<String> devicesAdapter;
+    SimpleAdapter devicesAdapter;
 
     PersistentStorage storage;
 
     public static final String PATIENT_NAME = "PatientName";
+    public static final String DEVICE_NAME = "DeviceName";
     public static final String MAC = "MAC";
 
     @Override
@@ -48,7 +49,7 @@ public class LookupActivity extends BaseSmartToothActivity {
         });
         patientsAdapter = new SimpleAdapter(this, patients,
                 android.R.layout.simple_list_item_2,
-                new String[]{MAC, PATIENT_NAME},
+                new String[]{PATIENT_NAME, MAC},
                 new int[]{android.R.id.text1, android.R.id.text2});
         ListView lv = (ListView) findViewById(R.id.listView);
         lv.setAdapter(patientsAdapter);
@@ -64,7 +65,10 @@ public class LookupActivity extends BaseSmartToothActivity {
         });
 
 
-        devicesAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, devices);
+        devicesAdapter = new SimpleAdapter(this, devices,
+                android.R.layout.simple_list_item_2,
+                new String[]{DEVICE_NAME, MAC},
+                new int[]{android.R.id.text1, android.R.id.text2});
         ListView lv2 = (ListView) findViewById(R.id.listView2);
         lv2.setAdapter(devicesAdapter);
 
@@ -72,7 +76,7 @@ public class LookupActivity extends BaseSmartToothActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent intent = new Intent(LookupActivity.this, CreatePacientActivity.class);
-                intent.putExtra("MAC", devices.get(position));
+                intent.putExtra("MAC", devices.get(position).get("MAC"));
                 startActivity(intent);
             }
         });
@@ -97,9 +101,9 @@ public class LookupActivity extends BaseSmartToothActivity {
         devices.clear();
         patients.clear();
         Map<String, String> patientsHash = PersistentStorage.getInstance(this).getPacients();
-        Log.e("ceva", patientsHash.toString());
         for (BluetoothDevice b : TransientStorage.getDevices()) {
             String mac = b.getAddress();
+            String deviceName = b.getName();
             String patientName = patientsHash.get(mac);
             if(patientName != null) {
                 HashMap<String, String> row = new HashMap<>(2);
@@ -108,7 +112,10 @@ public class LookupActivity extends BaseSmartToothActivity {
                 patients.add(row);
                 patientsHash.remove(mac);
             } else {
-                devices.add(mac);
+                HashMap<String, String> row = new HashMap<>(2);
+                row.put(DEVICE_NAME, deviceName != null ? deviceName : "<unknown>");
+                row.put(MAC, mac);
+                devices.add(row);
             }
         }
         for (String mac : patientsHash.keySet()) {
