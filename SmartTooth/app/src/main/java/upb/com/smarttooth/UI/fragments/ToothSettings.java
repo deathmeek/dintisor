@@ -144,6 +144,11 @@ public class ToothSettings implements Renderer {
         f = (TextView) rootView.findViewById(R.id.textView_f);
         d = (TextView) rootView.findViewById(R.id.textView_d);
         v = (TextView) rootView.findViewById(R.id.textView_Voltage);
+        T3.setKeyListener(null);
+        T4.setKeyListener(null);
+        f.setKeyListener(null);
+        d.setKeyListener(null);
+        v.setKeyListener(null);
         status = ( TextView) rootView.findViewById(R.id.textView_status);
         TextView.OnEditorActionListener l14 = new TextView.OnEditorActionListener() {
             @Override
