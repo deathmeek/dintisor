@@ -7,13 +7,19 @@ import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
+import android.os.Environment;
 import android.util.Log;
 
 import java.io.CharArrayWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -69,6 +75,11 @@ public class Tooth {
     BluetoothGattCharacteristic target = null;
     boolean real_time_enabled = true;
 
+    private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+    private FileWriter logPh = null;
+    private FileWriter logHum = null;
+    private FileWriter logV = null;
+
     private static Tooth instance;
     public final DataFrame dataFrame;
     BluetoothAdapter.LeScanCallback cbLocate = new BluetoothAdapter.LeScanCallback() {
@@ -102,10 +113,34 @@ public class Tooth {
         bluetoothGatt = null;
     }
 
+    public void createLogs()
+    {
+        File sdRoot = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+        File sdLogDir = new File(sdRoot, "Microsal");
+        if(!sdLogDir.mkdirs())
+            Log.w("log", "directory not created");
+        Log.i("log", "log path " + sdLogDir.getAbsolutePath());
+        try {
+            Date now = new Date();
+            logPh = new FileWriter(new File(sdLogDir, formatter.format(now) + "_pH.log"));
+            logHum = new FileWriter(new File(sdLogDir, formatter.format(now) + "_humidity.log"));
+            logV = new FileWriter(new File(sdLogDir, formatter.format(now) + "_voltage.log"));
+        } catch(IOException ex) {
+            Log.w("log", ex.toString());
+        }
+    }
+
     private Tooth() {
         instance = this;
         dataFrame = new DataFrame(new String[]{"PH", "Humidity"}, null, true);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        String sdState = Environment.getExternalStorageState();
+        if(Environment.MEDIA_MOUNTED.equals(sdState))
+        {
+            createLogs();
+        }
+
         // start a thread to schedule reads
         new Thread(new Runnable() {
             @Override
@@ -181,16 +216,44 @@ public class Tooth {
                 value = (int)(v * 1000);
                 Log.i("pH", "" + v);
                 dataFrame.update(value, DataFrame.DataType.PH);
+                try {
+                    if (logPh != null) {
+                        logPh.write(formatter.format(new Date()) + ", " + Integer.toString(value) + "\n");
+                        logPh.flush();
+                    }
+                } catch(IOException ex) {
+                    Log.w("log", ex.toString());
+                }
             } else if (characteristic == humCharac) {
                 float v = ByteBuffer.wrap(characteristic.getValue()).order(ByteOrder.LITTLE_ENDIAN).getFloat();
                 value = (int) (v * 1000);
                 Log.i("hum", "" + v);
                 dataFrame.update(value, DataFrame.DataType.Humidity);
+                try {
+                    if (logHum != null) {
+                        logHum.write(formatter.format(new Date()) + ", " + Integer.toString(value) + "\n");
+                        logHum.flush();
+                    }
+                } catch(IOException ex) {
+                    Log.w("log", ex.toString());
+                }
             } else if (characteristic == T1Charac || characteristic == T2Charac ||
                     characteristic == T3Charac || characteristic == T4Charac ||
                     characteristic == TACharac || characteristic == TPCharac ||
                     characteristic == TTCharac || characteristic == VCharac) {
-                updateUI(characteristic, characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0));
+                value = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0);
+                updateUI(characteristic, value);
+
+                if(characteristic == VCharac) {
+                    try {
+                        if (logV != null) {
+                            logV.write(formatter.format(new Date()) + ", " + Integer.toString(value) + "\n");
+                            logV.flush();
+                        }
+                    } catch (IOException ex) {
+                        Log.w("log", ex.toString());
+                    }
+                }
             } else {
 //                if (characteristic == STCharac) {
 //                    value = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
