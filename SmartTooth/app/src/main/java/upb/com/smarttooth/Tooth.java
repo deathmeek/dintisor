@@ -7,6 +7,8 @@ import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
+import android.content.Context;
+import android.media.MediaScannerConnection;
 import android.os.Environment;
 import android.util.Log;
 
@@ -113,8 +115,12 @@ public class Tooth {
         bluetoothGatt = null;
     }
 
-    public void createLogs()
+    public void createLogs(Context context)
     {
+        String sdState = Environment.getExternalStorageState();
+        if(!Environment.MEDIA_MOUNTED.equals(sdState))
+            return;
+
         File sdRoot = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
         File sdLogDir = new File(sdRoot, "Microsal");
         if(!sdLogDir.mkdirs())
@@ -122,9 +128,16 @@ public class Tooth {
         Log.i("log", "log path " + sdLogDir.getAbsolutePath());
         try {
             Date now = new Date();
-            logPh = new FileWriter(new File(sdLogDir, formatter.format(now) + "_pH.log"));
-            logHum = new FileWriter(new File(sdLogDir, formatter.format(now) + "_humidity.log"));
-            logV = new FileWriter(new File(sdLogDir, formatter.format(now) + "_voltage.log"));
+
+            File filePh = new File(sdLogDir, formatter.format(now) + "_pH.log");
+            File fileHum = new File(sdLogDir, formatter.format(now) + "_humidity.log");
+            File fileV = new File(sdLogDir, formatter.format(now) + "_voltage.log");
+
+            if(logPh == null) logPh = new FileWriter(filePh);
+            if(logHum == null) logHum = new FileWriter(fileHum);
+            if(logV == null) logV = new FileWriter(fileV);
+
+            MediaScannerConnection.scanFile(context, new String[]{filePh.getAbsolutePath(), fileHum.getAbsolutePath(), fileV.getAbsolutePath()}, null, null);
         } catch(IOException ex) {
             Log.w("log", ex.toString());
         }
@@ -134,12 +147,6 @@ public class Tooth {
         instance = this;
         dataFrame = new DataFrame(new String[]{"PH", "Humidity"}, null, true);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
-        String sdState = Environment.getExternalStorageState();
-        if(Environment.MEDIA_MOUNTED.equals(sdState))
-        {
-            createLogs();
-        }
 
         // start a thread to schedule reads
         new Thread(new Runnable() {

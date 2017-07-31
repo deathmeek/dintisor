@@ -55,6 +55,7 @@ public abstract class BaseSmartToothActivity extends Activity {
             finish();
         }
         tooth = Tooth.getInstance();
+        tooth.createLogs(getApplicationContext());
     }
 
     @Override
