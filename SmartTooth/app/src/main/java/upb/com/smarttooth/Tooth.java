@@ -47,6 +47,14 @@ public class Tooth {
         bluetoothAdapter.stopLeScan(cbLocate);
     }
 
+    public int getValue(BluetoothGattCharacteristic c) {
+        return c.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0);
+    }
+
+    public int getValue(int id) {
+        return getValue(remap(id));
+    }
+
     public class CharacWrapper {
         boolean write;
         BluetoothGattCharacteristic c;

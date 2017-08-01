@@ -54,63 +54,23 @@ public class ToothSettings implements Renderer {
         return R.menu.tooth_settings;
     }
 
-    private void updateT14(EditText e)
+    private void updateTs(EditText e)
     {
         int val;
         try {
             val = Integer.parseInt(e.getText().toString());
-            update(e.getId(), val);
-        } catch (Exception ex) {
+            if (val == Tooth.getInstance().getValue(e.getId()))
+                return;
+
+            Tooth.getInstance().enqueueWrite(remapView(e), val);
+            Tooth.getInstance().enqueueRead(remapView(e));
+        } catch (NumberFormatException ex) {
             e.setText("");
-            return;
         }
-        Tooth.getInstance().enqueueWrite(remapView(e), val);
-        Tooth.getInstance().enqueueRead(remapView(e));
     }
 
     private int remapView(View e) {
         return e.getId();
-    }
-
-    private void updateTA()
-    {
-        int val;
-        try {
-            val = Integer.parseInt(Ta.getText().toString());
-            update(Ta.getId(), val);
-        } catch (Exception ex) {
-            Ta.setText("");
-            return;
-        }
-        Tooth.getInstance().enqueueWrite(remapView(Ta), val);
-        Tooth.getInstance().enqueueRead(remapView(Ta));
-    }
-
-    private void updateTP()
-    {
-        int val;
-        try {
-            val = Integer.parseInt(Tp.getText().toString());
-            update(Tp.getId(), val);
-        } catch (Exception ex) {
-            Tp.setText("");
-            return;
-        }
-        Tooth.getInstance().enqueueWrite(remapView(Tp), val);
-        Tooth.getInstance().enqueueRead(remapView(Tp));
-    }
-
-    private void updateTT() {
-        int val;
-        try {
-            val = Integer.parseInt(Tt.getText().toString());
-            update(Tt.getId(), val);
-        } catch (Exception ex) {
-            Tt.setText("");
-            return;
-        }
-        Tooth.getInstance().enqueueWrite(remapView(Tt), val);
-        Tooth.getInstance().enqueueRead(remapView(Tt));
     }
 
     @Override
@@ -152,47 +112,38 @@ public class ToothSettings implements Renderer {
         d.setKeyListener(null);
         v.setKeyListener(null);
         status = ( TextView) rootView.findViewById(R.id.textView_status);
-        TextView.OnEditorActionListener l14 = new TextView.OnEditorActionListener() {
+
+        TextView.OnEditorActionListener al14 = new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if(actionId == EditorInfo.IME_ACTION_DONE) {
-                    EditText e = (EditText) v;
-                    updateT14(e);
-                }
+                if(actionId == EditorInfo.IME_ACTION_DONE)
+                    updateTs((EditText) v);
+
                 return false;
             }
         };
-        T1.setOnEditorActionListener(l14);
-        T2.setOnEditorActionListener(l14);
-        T3.setOnEditorActionListener(l14);
-        T4.setOnEditorActionListener(l14);
-        Ta.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+        View.OnFocusChangeListener fl14 = new View.OnFocusChangeListener() {
             @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if(actionId == EditorInfo.IME_ACTION_DONE) {
-                    updateTA();
-                }
-                return false;
+            public void onFocusChange(View v, boolean hasFocus) {
+                if(!hasFocus)
+                    updateTs((EditText) v);
             }
-        });
-        Tp.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if(actionId == EditorInfo.IME_ACTION_DONE) {
-                    updateTP();
-                }
-                return false;
-            }
-        });
-        Tt.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if(actionId == EditorInfo.IME_ACTION_DONE) {
-                    updateTT();
-                }
-                return false;
-            }
-        });
+        };
+        T1.setOnEditorActionListener(al14);
+        T2.setOnEditorActionListener(al14);
+        T3.setOnEditorActionListener(al14);
+        T4.setOnEditorActionListener(al14);
+        Ta.setOnEditorActionListener(al14);
+        Tp.setOnEditorActionListener(al14);
+        Tt.setOnEditorActionListener(al14);
+        T1.setOnFocusChangeListener(fl14);
+        T2.setOnFocusChangeListener(fl14);
+        T3.setOnFocusChangeListener(fl14);
+        T4.setOnFocusChangeListener(fl14);
+        Ta.setOnFocusChangeListener(fl14);
+        Tp.setOnFocusChangeListener(fl14);
+        Tt.setOnFocusChangeListener(fl14);
+
         return rootView;
     }
 
