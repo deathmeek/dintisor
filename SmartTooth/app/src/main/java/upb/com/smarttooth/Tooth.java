@@ -68,7 +68,7 @@ public class Tooth {
 
     static volatile public boolean online;
     private BluetoothAdapter bluetoothAdapter;
-    BluetoothGatt bluetoothGatt;
+    private volatile BluetoothGatt bluetoothGatt;
     public BluetoothGattCharacteristic phCharac;
     public BluetoothGattCharacteristic humCharac;
     public BluetoothGattCharacteristic TTCharac;
@@ -303,8 +303,7 @@ public class Tooth {
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             super.onConnectionStateChange(gatt, status, newState);
             Log.i("Tooth", "state changed: " + newState);
-            Tooth.online = newState == BluetoothProfile.STATE_CONNECTED;
-            if (Tooth.online) {
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
                 gatt.discoverServices();
                 TransientStorage.getTopMostActivity().runOnUiThread(new Runnable() {
                     @Override
@@ -317,6 +316,7 @@ public class Tooth {
                     }
                 });
             } else {
+                Tooth.online = false;
                 TransientStorage.getTopMostActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -393,7 +393,13 @@ public class Tooth {
                     }
                 }
             }
-            readAllCharac();
+            if(status == BluetoothGatt.GATT_SUCCESS) {
+                Tooth.online = true;
+                readAllCharac();
+            }
+            else {
+                disconnectBluetooth();
+            }
         }
     };
 
