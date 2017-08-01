@@ -119,9 +119,12 @@ public class Tooth {
         if (bluetoothGatt == null)
             return;
 
+        Tooth.online = false;
+
         bluetoothGatt.disconnect();
         bluetoothGatt.close();
-        bluetoothGatt = null;
+
+        map.clear();
     }
 
     public void createLogs(Context context)

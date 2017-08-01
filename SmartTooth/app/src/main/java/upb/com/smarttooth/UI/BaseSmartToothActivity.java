@@ -71,12 +71,10 @@ public abstract class BaseSmartToothActivity extends Activity {
     protected void onResume() {
         super.onResume();
         TransientStorage.setTopMostActivity(this);
-        tooth.startScan();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        tooth.stopScan();
     }
 }

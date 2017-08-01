@@ -106,6 +106,20 @@ public class LookupActivity extends BaseSmartToothActivity {
         }).start();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        Tooth.getInstance().resetBluetooth();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        Tooth.getInstance().stopScan();
+    }
+
     public void updateListOfDevices() {
         devices.clear();
         patients.clear();
