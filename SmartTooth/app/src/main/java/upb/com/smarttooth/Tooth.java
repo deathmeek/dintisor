@@ -89,6 +89,7 @@ public class Tooth {
     private FileWriter logPh = null;
     private FileWriter logHum = null;
     private FileWriter logV = null;
+    private FileWriter logStim = null;
 
     private static Tooth instance;
     public final DataFrame dataFrame;
@@ -141,6 +142,7 @@ public class Tooth {
             File filePh = new File(sdLogDir, formatter.format(now) + "_pH.csv");
             File fileHum = new File(sdLogDir, formatter.format(now) + "_humidity.csv");
             File fileV = new File(sdLogDir, formatter.format(now) + "_voltage.csv");
+            File fileStim = new File(sdLogDir, formatter.format(now) + "_stimulation.csv");
 
             if(logPh == null) {
                 logPh = new FileWriter(filePh);
@@ -157,7 +159,12 @@ public class Tooth {
                 logV.write("Timestamp, Voltage\n");
             }
 
-            MediaScannerConnection.scanFile(context, new String[]{filePh.getAbsolutePath(), fileHum.getAbsolutePath(), fileV.getAbsolutePath()}, null, null);
+            if(logStim == null) {
+                logStim = new FileWriter(fileStim);
+                logStim.write("Timestamp, Tt, Ta, Tp, T1, T2, T3, T4\n");
+            }
+
+            MediaScannerConnection.scanFile(context, new String[]{filePh.getAbsolutePath(), fileHum.getAbsolutePath(), fileV.getAbsolutePath(), fileStim.getAbsolutePath()}, null, null);
         } catch(IOException ex) {
             Log.w("log", ex.toString());
         }
@@ -486,6 +493,24 @@ public class Tooth {
         if(charac == null) {
             Log.w("enque write", "characteristic not found (yet)");
             return;
+        }
+
+        if(charac == STCharac && val != 0) {
+            try {
+                if (logStim != null) {
+                    logStim.write(formatter.format(new Date()) + ", " +
+                            getValue(TTCharac) + ", " +
+                            getValue(TACharac) + ", " +
+                            getValue(TPCharac) + ", " +
+                            getValue(T1Charac) + ", " +
+                            getValue(T2Charac) + ", " +
+                            getValue(T3Charac) + ", " +
+                            getValue(T4Charac) + "\n");
+                    logStim.flush();
+                }
+            } catch(IOException ex) {
+                Log.w("log", ex.toString());
+            }
         }
 
         Log.e("ceva", "enqueueWrite " + val);
