@@ -58,7 +58,7 @@ public class Tooth {
         }
     }
 
-    static public boolean online;
+    static volatile public boolean online;
     private BluetoothAdapter bluetoothAdapter;
     BluetoothGatt bluetoothGatt;
     public BluetoothGattCharacteristic phCharac;
@@ -168,7 +168,7 @@ public class Tooth {
                     try {
                         Thread.sleep(Config.READ_INTERVAL);
                         if (bluetoothGatt != null) {
-                            if (real_time_enabled) {
+                            if (online) {
                                 if (phCharac != null) {
                                     enqueueRead(phCharac);
                                 }
@@ -312,6 +312,8 @@ public class Tooth {
                         }
                     }
                 });
+                map.clear();
+                connectBluetooth(gatt.getDevice());
             }
         }
 
