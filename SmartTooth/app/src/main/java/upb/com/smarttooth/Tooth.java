@@ -77,7 +77,7 @@ public class Tooth {
     BluetoothGattCharacteristic target = null;
     boolean real_time_enabled = true;
 
-    private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+    private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private FileWriter logPh = null;
     private FileWriter logHum = null;
     private FileWriter logV = null;
@@ -128,14 +128,26 @@ public class Tooth {
         Log.i("log", "log path " + sdLogDir.getAbsolutePath());
         try {
             Date now = new Date();
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 
-            File filePh = new File(sdLogDir, formatter.format(now) + "_pH.log");
-            File fileHum = new File(sdLogDir, formatter.format(now) + "_humidity.log");
-            File fileV = new File(sdLogDir, formatter.format(now) + "_voltage.log");
+            File filePh = new File(sdLogDir, formatter.format(now) + "_pH.csv");
+            File fileHum = new File(sdLogDir, formatter.format(now) + "_humidity.csv");
+            File fileV = new File(sdLogDir, formatter.format(now) + "_voltage.csv");
 
-            if(logPh == null) logPh = new FileWriter(filePh);
-            if(logHum == null) logHum = new FileWriter(fileHum);
-            if(logV == null) logV = new FileWriter(fileV);
+            if(logPh == null) {
+                logPh = new FileWriter(filePh);
+                logPh.write("Timestamp, pH\n");
+            }
+
+            if(logHum == null) {
+                logHum = new FileWriter(fileHum);
+                logHum.write("Timestamp, Humidity\n");
+            }
+
+            if(logV == null) {
+                logV = new FileWriter(fileV);
+                logV.write("Timestamp, Voltage\n");
+            }
 
             MediaScannerConnection.scanFile(context, new String[]{filePh.getAbsolutePath(), fileHum.getAbsolutePath(), fileV.getAbsolutePath()}, null, null);
         } catch(IOException ex) {
