@@ -29,6 +29,7 @@ public class ToothSettings implements Renderer {
     TextView f;
     TextView d;
     TextView v;
+    TextView stim;
     public static TextView status;
     private View rootView;
     private static ToothSettings instance;
@@ -144,6 +145,7 @@ public class ToothSettings implements Renderer {
         f = (TextView) rootView.findViewById(R.id.textView_f);
         d = (TextView) rootView.findViewById(R.id.textView_d);
         v = (TextView) rootView.findViewById(R.id.textView_Voltage);
+        stim = (TextView) rootView.findViewById(R.id.textView_stimulation);
         T3.setKeyListener(null);
         T4.setKeyListener(null);
         f.setKeyListener(null);
@@ -215,6 +217,12 @@ public class ToothSettings implements Renderer {
                 } else if(id == R.id.textView_Voltage) {
                     TextView t = (TextView) rootView.findViewById(id);
                     t.setText(value + " mV");
+                } else if(id == R.id.textView_stimulation) {
+                    TextView t = (TextView) rootView.findViewById(id);
+                    if(value != 0)
+                        t.setText("Stimulation on");
+                    else
+                        t.setText("Stimulation off");
                 } else {
                     EditText e = (EditText) rootView.findViewById(id);
                     e.setText(Integer.toString(value));

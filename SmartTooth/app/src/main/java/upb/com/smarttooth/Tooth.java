@@ -178,6 +178,9 @@ public class Tooth {
                                 if (VCharac != null) {
                                     enqueueRead(VCharac);
                                 }
+                                if (STCharac != null) {
+                                    enqueueRead(STCharac);
+                                }
                             }
                         }
                     } catch (InterruptedException e) {
@@ -273,15 +276,11 @@ public class Tooth {
                         Log.w("log", ex.toString());
                     }
                 }
-            } else {
-//                if (characteristic == STCharac) {
-//                    value = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
-//                } else {
-//                    value = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0);
-//                }
-                //updateUI(characteristic, value);
+            } else if (characteristic == STCharac) {
+                value = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+                Log.i("stim", "" + value);
+                updateUI(characteristic, value);
             }
-            //Log.i("println", getName(characteristic.getUuid().toString()) + " value is " + value);
             scheduleNext();
         }
 
@@ -382,8 +381,8 @@ public class Tooth {
     };
 
     public void readAllCharac() {
-        enqueueRead(R.id.button_start);
         enqueueRead(R.id.textView_Voltage);
+        enqueueRead(R.id.textView_stimulation);
         enqueueRead(R.id.numberPickerT1);
         enqueueRead(R.id.numberPickerT2);
         enqueueRead(R.id.numberPickerT3);
@@ -525,6 +524,9 @@ public class Tooth {
             case R.id.button_stop: {
                 return STCharac;
             }
+            case R.id.textView_stimulation: {
+                return STCharac;
+            }
             case R.id.textView_Voltage: {
                 return VCharac;
             }
@@ -556,7 +558,7 @@ public class Tooth {
 
     private int remap(BluetoothGattCharacteristic c) {
         if (c == STCharac) {
-            return R.id.button_start;
+            return R.id.textView_stimulation;
         }
         if (c == VCharac) {
             return R.id.textView_Voltage;
